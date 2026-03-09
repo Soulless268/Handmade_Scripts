@@ -1,0 +1,644 @@
+-- Goal: Universal System
+-- Date Updated -- 21/12/2025 -- 4:40 AM -- DD/MM/YYYY
+
+local players = game:GetService("Players")
+local rp = game:GetService("ReplicatedStorage")
+local rs = game:GetService("RunService")
+
+local plr = players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hum = char:WaitForChild("Humanoid") :: Humanoid
+local hrp = char:WaitForChild("HumanoidRootPart") :: Part
+local plr_mouse = plr:GetMouse()
+
+local child_table
+local foundPlace = false
+
+local PlaceID = {
+	[130818724007978] = { ---TSB KJ
+		plr_folder = workspace:FindFirstChild("Live"),
+		npc_folder = nil
+	},
+	[10449761463] = { ---TSB
+		plr_folder = workspace:FindFirstChild("Live"),
+		npc_folder = nil
+	},
+	[78041891124723] = { --Blood Debt
+		plr_folder = workspace:FindFirstChild("NPCSFolder"),
+		npc_folder = nil
+	},
+	[155615604] = { --Prison Life
+		plr_folder = workspace,
+		npc_folder = nil
+	},
+	[18519254033] = { --Jump Showdown
+		plr_folder = workspace:FindFirstChild("Models"),
+		npc_folder = workspace:FindFirstChild("Models")
+	},
+	[14112387344] = { --Divine Duality Elemental
+		plr_folder = workspace:FindFirstChild("Entities"),
+		npc_folder = nil
+	}
+}
+
+for i,v in pairs(PlaceID) do
+	if game.PlaceId == i and not foundPlace then
+		if v.plr_folder or v.npc_folder then
+			child_table = v
+			foundPlace = true
+		else
+			warn("is it outdated?")
+		end
+	end
+end
+
+if not foundPlace then
+	child_table = {
+		plr_folder = workspace,
+		npc_folder = workspace,
+	}
+	
+	local found_plr_folder = false
+	local found_npc_folder = false
+	
+	warn("Place not found, Place ID is ", game.PlaceId)
+	--Find Player Folder then if found expect it to have npc inside
+	if not found_plr_folder then
+		for _,c: Instance in pairs(workspace:GetDescendants()) do
+			if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
+				if found_plr_folder then break end
+				print("Found Player Folder in ", c.Parent.Parent.Name)
+				child_table.plr_folder = c.Parent.Parent
+				foundPlace = true
+				found_plr_folder = true		
+			end
+		end
+	end
+	
+	if not found_npc_folder then
+		for _,c: Instance in pairs(workspace:GetDescendants()) do
+			if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
+				if found_npc_folder then break end
+				print("Found NPC Folder in ", c.Parent.Parent.Name)
+				child_table.npc_folder = c.Parent.Parent
+				found_npc_folder = true
+			end
+		end
+	end
+	
+end
+
+local DESTROYED = false
+local targetenemy
+local enable = false
+
+-----Settings-----
+local targetpart = "Head" --Head, HumanoidRootPart, Torso
+local locknpc = true -- Lock Npc or not
+local lockplayer = true -- Lock player or not
+local lockteam = true
+local predict_movement = true
+local detect_through_wall = true
+local detectionRadius = 50
+local totalTime_prediction = 10
+local dt_prediction = 0.1
+local ignore_players = {}
+local truecolor = Color3.fromRGB(170, 170, 0)
+local falsecolor = Color3.fromRGB(255, 0, 0)
+-----Settings-----
+
+local mainrun
+local lockon_runner
+local mouse_run
+local movement_run
+local inputrun
+
+local function sampleTrajectory(part, totalTime, dt)
+	local samples = {}
+	if dt <= 0 then return samples end
+	local steps = math.floor(totalTime / dt)
+	local pos0 = part.Position
+	local v0 = part.AssemblyLinearVelocity
+	local g = Vector3.new(0, -workspace.Gravity, 0)
+
+	for i = 1, steps do
+		local t = i * dt
+		local pos = pos0 + v0 * t + 0.5 * g * t * t
+		table.insert(samples, pos)
+	end
+	return samples
+end
+
+local function drawTrajectory(part)
+	-- Example usage:
+	-- local points = sampleTrajectory(somePart, 2, 0.05) -- positions for 0->2s every 0.05s
+	local points = sampleTrajectory(part, totalTime_prediction, dt_prediction)
+	-- remove old markers (simple approach)
+	for _, p in ipairs(workspace:GetChildren()) do
+		if p.Name == "TrajMarker" then p:Destroy() end
+	end
+	for i, pos in ipairs(points) do
+		local m = Instance.new("Part")
+		m.Size = Vector3.new(0.2,0.2,0.2)
+		m.Anchored = true
+		m.CanCollide = false
+		m.Position = pos
+		m.Name = "TrajMarker"
+		m.Parent = workspace
+	end
+end
+
+function lockon()
+	local enemypos = targetenemy[targetpart].CFrame.Position
+	local hum = targetenemy.Humanoid :: Humanoid
+	local cam = workspace.CurrentCamera
+	local pos = cam.CFrame.Position
+	--game.TweenService:Create(workspace.CurrentCamera, TweenInfo.new(1), {CFrame = CFrame.new(pos, charpos)}):Play()
+	if predict_movement and hum then
+		--drawTrajectory(targetenemy[targetpart])
+		local vel = targetenemy[targetpart].AssemblyLinearVelocity
+		local predict_pos = enemypos + vel * dt_prediction
+		cam.CFrame = CFrame.new(pos, predict_pos)
+	else
+		cam.CFrame = CFrame.new(pos, enemypos)
+	end
+end
+
+function AimLock()
+	local mousePos = game.UserInputService:GetMouseLocation()
+	local lastmagnitude = math.huge --just for the start
+
+	local c_plr
+	local c_npc
+
+	if foundPlace and child_table then
+		if child_table.plr_folder and child_table.npc_folder then
+			c_plr = child_table.plr_folder:GetChildren()
+			c_npc = child_table.npc_folder:GetChildren()
+		elseif child_table.npc_folder and not child_table.plr_folder then
+			c_plr = child_table.npc_folder:GetDescendants()
+			c_npc = child_table.npc_folder:GetChildren()
+		elseif child_table.plr_folder and not child_table.npc_folder then	
+			c_plr = child_table.plr_folder:GetChildren()
+			c_npc = child_table.plr_folder:GetDescendants()
+		end
+	else
+		c_plr = child_table.plr_folder:GetDescendants()
+		c_npc = child_table.npc_folder:GetDescendants()
+	end
+
+	local function finding_(children)
+		for i,v in pairs(children) do
+			if v:IsA("Model") and v:FindFirstChild("Humanoid") then
+				if v == plr.Character then continue end
+				
+				local enemy = v
+				if enemy:FindFirstChild("HumanoidRootPart") then
+					local enemypos = enemy[targetpart].CFrame.Position
+					local playerpos = plr.Character.PrimaryPart.CFrame.Position
+
+					local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(enemypos)
+
+					if onScreen then
+						local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+						if dist <= detectionRadius then
+							
+							if not detect_through_wall then
+								local ray_param = RaycastParams.new()
+								ray_param.FilterType = Enum.RaycastFilterType.Exclude
+								ray_param.FilterDescendantsInstances = {plr.Character, enemy}
+								local raycast = workspace:Raycast(playerpos, enemypos, ray_param)
+								if raycast then continue end
+							end
+							
+							local enemyplr = game.Players:GetPlayerFromCharacter(enemy)
+							if enemyplr and lockplayer then
+								if not lockteam and enemyplr.Team == plr.Team then continue end
+								if table.find(ignore_players, enemyplr.Name) then continue end
+								targetenemy = enemy
+								return
+							elseif not enemyplr and locknpc then
+								targetenemy = enemy
+								return
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if locknpc then
+		finding_(c_npc)
+	end
+
+	if lockplayer then
+		finding_(c_plr)
+	end
+
+end
+
+if targetenemy then
+	lockon()
+end
+
+local function getMousePosition()
+	local mouse = plr_mouse
+	local x, y = mouse.X, mouse.Y
+	return x, y
+end
+
+local mainscreen
+local extrascreen
+
+local mainframe
+local selectpartframe
+local ignore_players_frame
+local ignore_players_scrollframe
+local settings_frame
+local settings_scrolling_frame
+
+local ignore_players_button
+local selectpartbutton
+local colorstatus
+local radiustext
+local destroybutton
+local predictmovementbutton
+local npclockbutton
+local plrlockbutton
+local teamlockbutton
+local settings_button
+
+local radius
+
+do
+	mainscreen = Instance.new("ScreenGui")
+	mainscreen.Name = "AimLock"
+	mainscreen.ResetOnSpawn = false
+	mainscreen.Parent = plr.PlayerGui
+
+	do
+
+		mainframe = Instance.new("Frame")
+		mainframe.Draggable = true
+		mainframe.Active = true
+		mainframe.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+		mainframe.AnchorPoint = Vector2.new(0.5, 0.5)
+		mainframe.Position = UDim2.new(0.25, 0, 0.15, 0)
+		mainframe.Size = UDim2.new(.25,0,0.2,0)
+		mainframe.Parent = mainscreen
+		
+		do
+			
+			colorstatus = Instance.new("TextButton")
+			colorstatus.Text = " "
+			colorstatus.BackgroundColor3 = falsecolor
+			colorstatus.Position = UDim2.new(0, 0, 0, 0)
+			colorstatus.Size = UDim2.new(.5, 0, .25, 0)
+			colorstatus.Parent = mainframe
+			
+			local scrolling_frame = Instance.new("ScrollingFrame")
+			scrolling_frame.Active = true
+			scrolling_frame.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+			scrolling_frame.Position = UDim2.new(0, 0, 0.25, 0)
+			scrolling_frame.Size = UDim2.new(1,0,0.75,0)
+			scrolling_frame.CanvasSize = UDim2.new(0,0,0,0)
+			scrolling_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			scrolling_frame.ScrollBarThickness = 0
+			scrolling_frame.Parent = mainframe
+			
+			do
+				local grid = Instance.new("UIGridLayout")
+				grid.CellPadding = UDim2.new(0,0,0,0)
+				grid.CellSize = UDim2.new(.5,0,.3,0)
+				grid.FillDirection = "Horizontal"
+				grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				grid.VerticalAlignment = Enum.VerticalAlignment.Top
+				grid.Parent = scrolling_frame
+
+				destroybutton = Instance.new("TextButton")
+				destroybutton.Text = "Destroy"
+				destroybutton.Parent = scrolling_frame
+
+				npclockbutton = Instance.new("TextButton")
+				npclockbutton.Text = "LockNPC: "..tostring(locknpc)
+				npclockbutton.Parent = scrolling_frame
+
+				plrlockbutton = Instance.new("TextButton")
+				plrlockbutton.Text = "LockPlayer: "..tostring(lockplayer)
+				plrlockbutton.Parent = scrolling_frame
+
+				predictmovementbutton = Instance.new("TextButton")
+				predictmovementbutton.Text = "Predict Movement: "..tostring(predict_movement)
+				predictmovementbutton.Parent = scrolling_frame
+
+				teamlockbutton = Instance.new("TextButton")
+				teamlockbutton.Text = "LockTeam: "..tostring(lockteam)
+				teamlockbutton.Parent = scrolling_frame
+
+				radiustext = Instance.new("TextBox")
+				radiustext.PlaceholderText = "put number of radius"
+				radiustext.Text = tostring(detectionRadius)
+				radiustext.Parent = scrolling_frame
+
+				selectpartbutton = Instance.new("TextButton")
+				selectpartbutton.Text = targetpart
+				selectpartbutton.Parent = scrolling_frame
+
+				ignore_players_button = Instance.new("TextButton")
+				ignore_players_button.Text = "Ignore Players"
+				ignore_players_button.Parent = scrolling_frame
+				
+				settings_button = Instance.new("TextButton")
+				settings_button.Text = "Settings"
+				settings_button.Parent = scrolling_frame
+			end
+		end
+
+		selectpartframe = Instance.new("Frame")
+		selectpartframe.Draggable = true
+		selectpartframe.Active = true
+		selectpartframe.Visible = false
+		selectpartframe.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+		selectpartframe.Position = UDim2.new(0.25, 0, 0.15, 0)
+		selectpartframe.Size = UDim2.new(.2,0,0.15,0)
+		selectpartframe.Parent = mainscreen
+
+		do
+			local grid = Instance.new("UIGridLayout")
+			grid.CellPadding = UDim2.new(0,0,0,0)
+			grid.CellSize = UDim2.new(.5,0,.4,0)
+			grid.FillDirection = "Horizontal"
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			grid.VerticalAlignment = Enum.VerticalAlignment.Bottom
+			grid.Parent = selectpartframe
+		end
+		
+		ignore_players_frame = Instance.new("Frame")
+		ignore_players_frame.Draggable = true
+		ignore_players_frame.Active = true
+		ignore_players_frame.Visible = false
+		ignore_players_frame.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+		ignore_players_frame.Position = UDim2.new(0.25, 0, 0.15, 0)
+		ignore_players_frame.Size = UDim2.new(.2,0,0.15,0)
+		ignore_players_frame.Parent = mainscreen
+		
+		do
+			ignore_players_scrollframe = Instance.new("ScrollingFrame")
+			ignore_players_scrollframe.Active = true
+			ignore_players_scrollframe.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+			ignore_players_scrollframe.Position = UDim2.new(0, 0, 0.2, 0)
+			ignore_players_scrollframe.Size = UDim2.new(1,0,0.8,0)
+			ignore_players_scrollframe.CanvasSize = UDim2.new(0,0,0,0)
+			ignore_players_scrollframe.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			ignore_players_scrollframe.ScrollBarThickness = 0
+			ignore_players_scrollframe.Parent = ignore_players_frame
+
+			do
+				local grid = Instance.new("UIGridLayout")
+				grid.Parent = ignore_players_scrollframe
+				grid.CellPadding = UDim2.new(0,0,0,0)
+				grid.CellSize = UDim2.new(.5,0,.4,0)
+				grid.FillDirection = "Horizontal"
+				grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				grid.VerticalAlignment = Enum.VerticalAlignment.Top
+			end
+		end
+		
+		settings_frame = Instance.new("Frame")
+		settings_frame.Draggable = true
+		settings_frame.Active = true
+		settings_frame.Visible = false
+		settings_frame.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+		settings_frame.Position = UDim2.new(0.25, 0, 0.15, 0)
+		settings_frame.Size = UDim2.new(.3,0,0.25,0)
+		settings_frame.Parent = mainscreen
+		
+		do
+			settings_scrolling_frame = Instance.new("ScrollingFrame")
+			settings_scrolling_frame.Active = true
+			settings_scrolling_frame.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+			settings_scrolling_frame.Position = UDim2.new(0, 0, 0.2, 0)
+			settings_scrolling_frame.Size = UDim2.new(1,0,0.8,0)
+			settings_scrolling_frame.CanvasSize = UDim2.new(0,0,0,0)
+			settings_scrolling_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+			settings_scrolling_frame.ScrollBarThickness = 0
+			settings_scrolling_frame.Parent = settings_frame
+			
+			do
+				local grid = Instance.new("UIGridLayout")
+				grid.CellPadding = UDim2.new(0,0,0,0)
+				grid.CellSize = UDim2.new(1,0,.4,0)
+				grid.FillDirection = "Horizontal"
+				grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				grid.VerticalAlignment = Enum.VerticalAlignment.Top
+				grid.Parent = settings_scrolling_frame
+			end
+		end
+		
+	end
+
+	extrascreen = Instance.new("ScreenGui")
+	extrascreen.ResetOnSpawn = false
+	extrascreen.Parent = plr.PlayerGui
+
+	do
+		radius = Instance.new("Frame")
+		radius.Size = UDim2.new(0, detectionRadius*2, 0, detectionRadius*2)
+		radius.BackgroundTransparency = .75
+		radius.Parent = extrascreen
+
+		do
+			local e = Instance.new("UICorner")
+			e.Parent = radius
+			e.CornerRadius = UDim.new(1,0)
+		end
+	end
+
+end
+
+-----Startup-----
+local bodypart = {"Head", "Torso", "HumanoidRootPart"}
+for i,v in pairs(bodypart) do
+	local partbutton = Instance.new("TextButton")
+	partbutton.Text = v
+	partbutton.Parent = selectpartframe
+	partbutton.Activated:Connect(function()
+		selectpartframe.Visible = false
+		targetpart = v
+		selectpartbutton.Text = targetpart
+	end)
+end
+
+local function create_plr_b(p)
+	local partbutton = Instance.new("TextButton")
+	partbutton.Text = p.Name
+	partbutton.BackgroundColor3 = falsecolor
+	partbutton.Parent = ignore_players_scrollframe
+	partbutton.Activated:Connect(function()
+		if table.find(ignore_players, p.Name) then
+			table.remove(ignore_players, table.find(ignore_players, p.Name))
+			partbutton.BackgroundColor3 = falsecolor
+			return
+		else
+			table.insert(ignore_players, p.Name)
+			partbutton.BackgroundColor3 = truecolor
+		end
+	end)
+end
+
+local function remove_plr_b(p)
+	local partbutton = ignore_players_scrollframe:FindFirstChild(p.Name)
+	if partbutton then
+		partbutton:Destroy()
+	end
+end
+
+for _,p in pairs(players:GetPlayers()) do
+	if table.find(ignore_players, p.Name) then return end
+	create_plr_b(p)
+end
+
+players.PlayerAdded:Connect(function(player)
+	if table.find(ignore_players, player.Name) then return end
+	create_plr_b(player)
+end)
+
+players.PlayerRemoving:Connect(function(player)
+	if table.find(ignore_players, player.Name) then
+		table.remove(ignore_players, table.find(ignore_players, player.Name))
+	end
+	remove_plr_b(player)
+end)
+
+local function create_settings(parent, description: string, value: any)
+	local frame = Instance.new("Frame")
+	frame.BackgroundColor3 = Color3.fromRGB(85, 73, 68)
+	frame.Parent = parent
+
+	local text_label = Instance.new("TextLabel")
+	text_label.Text = description
+	text_label.BackgroundTransparency = 1
+	text_label.RichText = true
+	text_label.TextScaled = true
+	text_label.Size = UDim2.new(.75,0,1,0)
+	text_label.Parent = frame
+
+	local e
+
+	if typeof(value) == "boolean" then
+		e = Instance.new("TextButton")
+		e.Text = "  "
+		e.BackgroundColor3 = if value then truecolor else falsecolor
+	elseif typeof(value) == "number" then
+		e = Instance.new("TextBox")
+		e.Text = tostring(value)
+	end
+
+	e.Position = UDim2.new(.75,0,0,0)
+	e.Size = UDim2.new(.25,0,1,0)
+	e.Parent = frame
+end
+
+create_settings(settings_scrolling_frame, "Predicted Distance", dt_prediction)
+create_settings(settings_scrolling_frame, "Predict Movement", true)
+
+-----Startup-----
+
+-----Function-----
+
+radiustext.Changed:Connect(function()
+	if typeof(tonumber(radiustext.Text)) == "number" then
+		detectionRadius = tonumber(radiustext.Text)
+		radius.Size = UDim2.new(0, detectionRadius*2, 0, detectionRadius*2)
+	end
+end)
+
+mainrun = rs.RenderStepped:Connect(function()
+	if DESTROYED then
+		mainrun:Disconnect()
+		mouse_run:Disconnect()
+		lockon_runner:Disconnect()
+		return
+	end
+
+	if not targetenemy 
+		or not (targetenemy:IsDescendantOf(child_table.plr_folder) or targetenemy:IsDescendantOf(child_table.npc_folder))
+		or targetenemy.Humanoid:GetState() == Enum.HumanoidStateType.Dead then
+		targetenemy = nil
+	end
+end)
+
+mouse_run = plr_mouse.Move:Connect(function()
+	task.spawn(function()
+		local x,y = getMousePosition()
+		radius.Position = UDim2.new(0, x, 0, y) - UDim2.new(
+			radius.Size.X.Scale / 2, radius.Size.X.Offset / 2,
+			radius.Size.Y.Scale / 2, radius.Size.Y.Offset / 2
+		)
+	end)
+
+	if enable and targetenemy == nil then
+		AimLock()
+	end
+end)
+
+lockon_runner = rs.RenderStepped:Connect(function()
+	if targetenemy and (targetenemy:IsDescendantOf(child_table.plr_folder) or targetenemy:IsDescendantOf(child_table.npc_folder)) then
+		lockon()
+	end
+end)
+
+selectpartbutton.Activated:Connect(function()
+	selectpartframe.Visible = not selectpartframe.Visible
+end)
+
+ignore_players_button.Activated:Connect(function()
+	ignore_players_frame.Visible = not ignore_players_frame.Visible
+end)
+
+settings_button.Activated:Connect(function()
+	settings_frame.Visible = not settings_frame.Visible
+end)
+
+destroybutton.Activated:Connect(function()
+	enable = false
+	DESTROYED = true
+	mainscreen:Destroy()
+	extrascreen:Destroy()
+end)
+
+plrlockbutton.Activated:Connect(function()
+	lockplayer = not lockplayer
+	plrlockbutton.Text = "LockPlayer: "..tostring(lockplayer)
+end)
+
+teamlockbutton.Activated:Connect(function()
+	lockteam = not lockteam
+	teamlockbutton.Text = "LockTeam: "..tostring(lockteam)
+end)
+
+predictmovementbutton.Activated:Connect(function()
+	predict_movement = not predict_movement
+	predictmovementbutton.Text = "Predict Movement: "..tostring(predict_movement)
+end)
+
+npclockbutton.Activated:Connect(function()
+	locknpc = not locknpc
+	npclockbutton.Text = "LockNPC: "..tostring(locknpc)
+end)
+
+inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if DESTROYED then inputrun:Disconnect() return end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton3 then
+		enable = not enable
+		targetenemy = nil
+		if enable then
+			colorstatus.BackgroundColor3 = truecolor
+		else
+			colorstatus.BackgroundColor3 = falsecolor
+		end
+	end
+end)

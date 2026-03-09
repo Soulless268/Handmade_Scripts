@@ -1,0 +1,890 @@
+-- Goal: Universal System
+-- Date Updated -- 6:30 AM -- 12/2/2026 -- DD/MM/YYYY
+
+local players = game:GetService("Players")
+local uis = game:GetService("UserInputService")
+local rp = game:GetService("ReplicatedStorage")
+local rs = game:GetService("RunService")
+local tws = game:GetService("TweenService")
+
+local plr = players.LocalPlayer
+local char = plr.Character or plr.CharacterAdded:Wait()
+local hrp = char:WaitForChild("HumanoidRootPart") :: Part
+local hum = char:WaitForChild("Humanoid") :: Humanoid
+local plr_mouse = plr:GetMouse()
+
+local child_table
+local foundPlace = false
+
+local PlaceID = {
+	[130818724007978] = { ---TSB KJ
+		plr_folder = workspace:FindFirstChild("Live"),
+		npc_folder = nil
+	},
+	[10449761463] = { ---TSB
+		plr_folder = workspace:FindFirstChild("Live"),
+		npc_folder = nil
+	},
+	[78041891124723] = { --Blood Debt
+		plr_folder = workspace:FindFirstChild("NPCSFolder"),
+		npc_folder = nil
+	},
+	[155615604] = { --Prison Life
+		plr_folder = workspace,
+		npc_folder = nil
+	},
+	[18519254033] = { --Jump Showdown
+		plr_folder = workspace:FindFirstChild("Models"),
+		npc_folder = workspace:FindFirstChild("Models")
+	},
+	[14112387344] = { --Divine Duality Elemental
+		plr_folder = workspace:FindFirstChild("Entities"),
+		npc_folder = nil
+	}
+}
+
+for i,v in pairs(PlaceID) do
+	if game.PlaceId == i and not foundPlace then
+		if v.plr_folder or v.npc_folder then
+			child_table = v
+			foundPlace = true
+		else
+			warn("is it outdated?")
+		end
+	end
+end
+
+if not foundPlace then
+	child_table = {
+		plr_folder = workspace,
+		npc_folder = workspace,
+	}
+	
+	local found_plr_folder = false
+	local found_npc_folder = false
+	
+	warn("Place not found, Place ID is ", game.PlaceId)
+	--Find Player Folder then if found expect it to have npc inside
+	if not found_plr_folder then
+		for _,c: Instance in pairs(workspace:GetDescendants()) do
+			if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
+				if found_plr_folder then break end
+				print("Found Player Folder in ", c.Parent.Parent.Name)
+				child_table.plr_folder = c.Parent.Parent
+				foundPlace = true
+				found_plr_folder = true
+			end
+		end
+	end
+	
+	if not found_npc_folder then
+		for _,c: Instance in pairs(workspace:GetDescendants()) do
+			if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
+				if found_npc_folder then break end
+				print("Found NPC Folder in ", c.Parent.Parent.Name)
+				child_table.npc_folder = c.Parent.Parent
+				found_npc_folder = true
+			end
+		end
+	end
+	
+end
+
+-----Settings-----
+local Minimized = false
+local DESTROYED = false
+local current_catagory = nil
+local targetenemy
+local enable = false
+local targetpart = "HumanoidRootPart" --Head, HumanoidRootPart, Torso
+local locknpc = true -- Lock Npc or not
+local lockplayer = true -- Lock player or not
+local lockteam = true
+local predict_movement = true
+local lock_after_dead = false
+local detect_through_wall = true
+local detectionRadius = 50
+local distance = 10
+local totalTime_prediction = 10
+local dt_prediction = 0.1
+local ignore_players = {}
+local run_add_plr = true
+local run_remove_plr = true
+local frame_store = {}
+local background_image_id = "rbxassetid://86093393173023"
+local truecolor = Color3.fromRGB(170, 170, 0)
+local falsecolor = Color3.fromRGB(163, 162, 165)
+-----Settings-----
+
+local mainrun
+local lockon_runner
+local mouse_run
+local movement_run
+local inputrun
+
+-----SetUp GUI-----
+local screen = Instance.new("ScreenGui")
+screen.Name = "NickBackShot"
+screen.ResetOnSpawn = false
+screen.Parent = plr.PlayerGui
+
+local extrascreen
+
+local main_frame : Frame
+local catagories_frame : Frame
+local ignore_players_frame : Frame
+local back_shot_frame : Frame
+local settings_frame : Frame
+
+local show_button : TextButton
+local close_button : TextButton
+local minimize_button : TextButton
+
+local selectpartframe
+local ignore_players_scrollframe
+
+local refresh_button : TextButton
+local add_decent_button : TextButton
+local remove_decent_button : TextButton
+
+local ignore_players_button
+local selectpartbutton
+local lockafterdeadbutton
+local colorstatus
+local radiustext
+local distancetext
+local predictmovementbutton
+local npclockbutton
+local plrlockbutton
+local teamlockbutton
+
+local radius
+
+--PreLoad Local Universals Function:
+local function UiCorner(Parent, Ui)
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = Ui
+	Corner.Parent = Parent
+	return Corner
+end
+
+local function UiStroke(Parent)
+	local Stroke = Instance.new("UIStroke")
+	Stroke.Color = Color3.fromRGB(255, 255, 255)
+	Stroke.Thickness = 1
+	Stroke.LineJoinMode = Enum.LineJoinMode.Miter
+	Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	Stroke.Parent = Parent
+	return Stroke
+end
+
+local function create_button_catagory(parent, name: string, frame)
+	local button = Instance.new("TextButton")
+	button.Text = name
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextScaled = true
+	button.TextStrokeTransparency = 0
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	button.Parent = parent
+	UiStroke(button)
+
+	button.Activated:Connect(function()
+		if current_catagory and current_catagory ~= frame then
+			current_catagory.Visible = false
+			current_catagory = frame
+			current_catagory.Visible = true
+		else
+			current_catagory = frame
+			current_catagory.Visible = true
+		end
+	end)
+
+
+	return button
+end
+
+local function create_frame(parent, title: string, description: string, value: any, extra_value: any)
+	local frame = Instance.new("Frame")
+	frame.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
+	frame.Parent = parent
+	UiStroke(frame)
+
+	local title_label = Instance.new("TextLabel")
+	title_label.Text = title
+	title_label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title_label.TextStrokeTransparency = 0
+	title_label.TextXAlignment = Enum.TextXAlignment.Left
+	title_label.BackgroundTransparency = 1
+	title_label.RichText = true
+	title_label.TextScaled = true
+	title_label.Position = UDim2.new(0,0,0,0)
+	title_label.Size = UDim2.new(.75,0,.6,0)
+	title_label.Parent = frame
+
+	local description_label
+
+	if description then
+		description_label = Instance.new("TextLabel")
+		description_label.Text = description
+		description_label.TextColor3 = Color3.fromRGB(200, 200, 200)
+		description_label.TextXAlignment = Enum.TextXAlignment.Left
+		description_label.BackgroundTransparency = 1
+		description_label.RichText = true
+		description_label.TextScaled = true
+		description_label.Position = UDim2.new(0,0,.6,0)
+		description_label.Size = UDim2.new(.75,0,.4,0)
+		description_label.Parent = frame
+	end
+
+	local function make_value(value)
+		local button
+		if value == nil then return end
+
+		if typeof(value) == "boolean" then
+			button = Instance.new("TextButton")
+			button.Text = "  "
+			button.BackgroundColor3 = if value then truecolor else falsecolor
+		elseif typeof(value) == "number" then
+			button = Instance.new("TextBox")
+			button.Text = tostring(value)
+		end
+
+		if value == "Click" then
+			button = Instance.new("TextButton")
+			button.Text = ">"
+			button.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+			button.TextScaled = true
+		elseif value == "Select" then
+			button = Instance.new("TextButton")
+			button.Text = "None"
+			button.TextScaled = true
+			button.TextWrapped = true
+		end
+
+		return button
+	end
+
+	local e1 = make_value(value)
+	local e2 = make_value(extra_value)
+
+	if e2 then
+		title_label.Size = UDim2.new(.5,0,.6,0)
+		if description_label then
+			description_label.Size = UDim2.new(.5,0,.4,0)
+		end
+
+		e1.Position = UDim2.new(.75,0,0,0)
+		e1.Size = UDim2.new(.25,0,1,0)
+		e1.Parent = frame
+
+		e2.Position = UDim2.new(.5,0,0,0)
+		e2.Size = UDim2.new(.25,0,1,0)
+		e2.Parent = frame
+		return e1, e2
+	else
+		title_label.Size = UDim2.new(.75,0,.6,0)
+
+		if description_label then
+			description_label.Size = UDim2.new(.75,0,.4,0)
+		end
+
+		e1.Position = UDim2.new(.75,0,0,0)
+		e1.Size = UDim2.new(.25,0,1,0)
+		e1.Parent = frame
+		return e1
+	end
+end
+
+local function character_available()
+	local available = false
+	char = plr.Character
+	if not char then return available end
+	hrp = char:FindFirstChild("HumanoidRootPart") :: Part
+	hum = char:FindFirstChildOfClass("Humanoid") :: Humanoid
+
+	if hrp and hum then
+		available = true
+	end
+
+	return available
+
+end
+
+local function sampleTrajectory(part, totalTime, dt)
+	local samples = {}
+	if dt <= 0 then return samples end
+	local steps = math.floor(totalTime / dt)
+	local pos0 = part.Position
+	local v0 = part.AssemblyLinearVelocity
+	local g = Vector3.new(0, -workspace.Gravity, 0)
+
+	for i = 1, steps do
+		local t = i * dt
+		local pos = pos0 + v0 * t + 0.5 * g * t * t
+		table.insert(samples, pos)
+	end
+	return samples
+end
+
+local function drawTrajectory(part)
+	-- Example usage:
+	-- local points = sampleTrajectory(somePart, 2, 0.05) -- positions for 0->2s every 0.05s
+	local points = sampleTrajectory(part, totalTime_prediction, dt_prediction)
+	-- remove old markers (simple approach)
+	for _, p in ipairs(workspace:GetChildren()) do
+		if p.Name == "TrajMarker" then p:Destroy() end
+	end
+	for i, pos in ipairs(points) do
+		local m = Instance.new("Part")
+		m.Size = Vector3.new(0.2,0.2,0.2)
+		m.Anchored = true
+		m.CanCollide = false
+		m.Position = pos
+		m.Name = "TrajMarker"
+		m.Parent = workspace
+	end
+end
+
+local function go_to_pos(pos, magnitude)
+	if not character_available() then return end
+
+	local speed = 100
+	local minTime = 0.01
+	local maxTime = 5
+
+	local distance = magnitude
+
+	local time_ = distance / speed
+
+	time_ = math.clamp(time_, minTime, maxTime)
+	
+	if typeof(pos) == "Vector3" then
+		pos = CFrame.new(pos)
+	elseif typeof(pos) == "CFrame" then
+		pos = pos
+	end
+
+	tws:Create(hrp, TweenInfo.new(time_), {CFrame = pos}):Play()
+end
+
+function lockon()
+	task.spawn(function()
+		if not character_available() then return end
+		local epart = targetenemy[targetpart]
+		local ehum = targetenemy.Humanoid :: Humanoid
+		--game.TweenService:Create(workspace.CurrentCamera, TweenInfo.new(1), {CFrame = CFrame.new(pos, charpos)}):Play()
+		if not ehum then return end
+		if ehum.Health <= 0 then return end
+		if ehum:GetState() == Enum.HumanoidStateType.Dead then return end
+
+		local mag = (epart.Position - hrp.Position).Magnitude
+		local target_pos = (epart.CFrame * CFrame.new(0,0,distance))
+
+		if predict_movement then
+			local vel = epart.AssemblyLinearVelocity
+			go_to_pos(target_pos, mag)
+		else
+			go_to_pos(target_pos, mag)
+		end
+	end)
+end
+
+function AimLock()
+	local mousePos = game.UserInputService:GetMouseLocation()
+	local lastmagnitude = math.huge --just for the start
+
+	local c_plr
+	local c_npc
+
+	if foundPlace and child_table then
+		if child_table.plr_folder and child_table.npc_folder then
+			c_plr = child_table.plr_folder:GetChildren()
+			c_npc = child_table.npc_folder:GetChildren()
+		elseif child_table.npc_folder and not child_table.plr_folder then
+			c_plr = child_table.npc_folder:GetDescendants()
+			c_npc = child_table.npc_folder:GetChildren()
+		elseif child_table.plr_folder and not child_table.npc_folder then	
+			c_plr = child_table.plr_folder:GetChildren()
+			c_npc = child_table.plr_folder:GetDescendants()
+		end
+	else
+		c_plr = child_table.plr_folder:GetDescendants()
+		c_npc = child_table.npc_folder:GetDescendants()
+	end
+
+	local function finding_(children)
+		for i,v in pairs(children) do
+			if v:IsA("Model") and v:FindFirstChild("Humanoid") then
+				if v == plr.Character then continue end
+				
+				local enemy = v
+				if enemy:FindFirstChild("HumanoidRootPart") then
+					local enemypos = enemy[targetpart].CFrame.Position
+					local playerpos = plr.Character.PrimaryPart.CFrame.Position
+
+					local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(enemypos)
+
+					if onScreen then
+						local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+						if dist <= detectionRadius then
+							
+							if not detect_through_wall then
+								local ray_param = RaycastParams.new()
+								ray_param.FilterType = Enum.RaycastFilterType.Exclude
+								ray_param.FilterDescendantsInstances = {plr.Character, enemy}
+								local raycast = workspace:Raycast(playerpos, enemypos, ray_param)
+								if raycast then continue end
+							end
+							
+							local enemyplr = game.Players:GetPlayerFromCharacter(enemy)
+							if enemyplr and lockplayer then
+								if not lockteam and enemyplr.Team == plr.Team then continue end
+								if table.find(ignore_players, enemyplr.Name) then continue end
+								targetenemy = enemy
+								return
+							elseif not enemyplr and locknpc then
+								targetenemy = enemy
+								return
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	if locknpc then
+		finding_(c_npc)
+	end
+
+	if lockplayer then
+		finding_(c_plr)
+	end
+
+end
+
+local function getMousePosition()
+	local mouse = plr_mouse
+	local x, y = mouse.X, mouse.Y
+	return x, y
+end
+
+do
+	main_frame = Instance.new("Frame")
+	main_frame.Draggable = true
+	main_frame.Name = "Main"
+	main_frame.Active = true
+	main_frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	main_frame.AnchorPoint = Vector2.new(1, 0)
+	main_frame.Position = UDim2.new(1, 0, 0.15, 0)
+	main_frame.Size = UDim2.new(0.25, 0, 0.4, 0)
+	main_frame.Parent = screen
+	UiStroke(main_frame)
+	
+	back_ground_frame = Instance.new("ImageLabel")
+	back_ground_frame.BackgroundTransparency = 1
+	back_ground_frame.ImageTransparency = .75
+	back_ground_frame.Image = background_image_id
+	back_ground_frame.Position = UDim2.new(0, 0, 0.1, 0)
+	back_ground_frame.Size = UDim2.new(1,0,0.9,0)
+	back_ground_frame.Parent = main_frame
+
+	do
+		close_button = Instance.new("TextButton")
+		close_button.Text = "X"
+		close_button.AnchorPoint = Vector2.new(1,0)
+		close_button.BackgroundTransparency = 1
+		close_button.TextScaled = true
+		close_button.TextColor3 = Color3.fromRGB(255, 170, 0)
+		close_button.Position = UDim2.new(1,0,0,0)
+		close_button.Size = UDim2.new(0.05, 0,0.1, 0)
+		close_button.Parent = main_frame
+
+		minimize_button = Instance.new("TextButton")
+		minimize_button.Text = "-"
+		minimize_button.AnchorPoint = Vector2.new(1,0)
+		minimize_button.BackgroundTransparency = 1
+		minimize_button.TextScaled = true
+		minimize_button.TextColor3 = Color3.fromRGB(255, 170, 0)
+		minimize_button.Position = UDim2.new(.95,0,0,0)
+		minimize_button.Size = UDim2.new(0.1,0,0.1,0)
+		minimize_button.Parent = main_frame
+		
+		back_shot_frame = Instance.new("ScrollingFrame")
+		back_shot_frame.Active = true
+		back_shot_frame.Visible = true
+		back_shot_frame.BackgroundTransparency = .25
+		back_shot_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		back_shot_frame.Position = UDim2.new(0.25, 0, 0.1, 0)
+		back_shot_frame.Size = UDim2.new(.75,0,0.9,0)
+		back_shot_frame.CanvasSize = UDim2.new(0,0,0,0)
+		back_shot_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		back_shot_frame.ScrollBarThickness = 0
+		back_shot_frame.Parent = main_frame
+		UiStroke(back_shot_frame)
+		
+		do
+			local grid = Instance.new("UIGridLayout")
+			grid.CellPadding = UDim2.new(0,0,0,1)
+			grid.CellSize = UDim2.new(1,0,.15,0)
+			grid.FillDirection = "Horizontal"
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			grid.VerticalAlignment = Enum.VerticalAlignment.Top
+			grid.Parent = back_shot_frame
+			
+			colorstatus = create_frame(back_shot_frame, "Status", nil, enable)
+			
+			refresh_button = create_frame(back_shot_frame, "Refresh", "Refresh", "Click")
+			
+		end
+
+		ignore_players_frame = Instance.new("ScrollingFrame")
+		ignore_players_frame.Active = true
+		ignore_players_frame.Visible = false
+		ignore_players_frame.BackgroundTransparency = .25
+		ignore_players_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		ignore_players_frame.Position = UDim2.new(0.25, 0, 0.1, 0)
+		ignore_players_frame.Size = UDim2.new(.75,0,0.9,0)
+		ignore_players_frame.CanvasSize = UDim2.new(0,0,0,0)
+		ignore_players_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		ignore_players_frame.ScrollBarThickness = 0
+		ignore_players_frame.Parent = main_frame
+		UiStroke(ignore_players_frame)
+
+		do
+			local grid = Instance.new("UIGridLayout")
+			grid.CellPadding = UDim2.new(0,0,0,1)
+			grid.CellSize = UDim2.new(1,0,.15,0)
+			grid.FillDirection = "Horizontal"
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			grid.VerticalAlignment = Enum.VerticalAlignment.Top
+			grid.Parent = ignore_players_frame
+
+		end
+		
+		settings_frame = Instance.new("ScrollingFrame")
+		settings_frame.Active = true
+		settings_frame.Visible = false
+		settings_frame.BackgroundTransparency = .25
+		settings_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		settings_frame.Position = UDim2.new(0.25, 0, 0.1, 0)
+		settings_frame.Size = UDim2.new(.75,0,0.9,0)
+		settings_frame.CanvasSize = UDim2.new(0,0,0,0)
+		settings_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		settings_frame.ScrollBarThickness = 0
+		settings_frame.Parent = main_frame
+		UiStroke(settings_frame)
+
+		do
+			local grid = Instance.new("UIGridLayout")
+			grid.CellPadding = UDim2.new(0,0,0,1)
+			grid.CellSize = UDim2.new(1,0,.15,0)
+			grid.FillDirection = "Horizontal"
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			grid.VerticalAlignment = Enum.VerticalAlignment.Top
+			grid.Parent = settings_frame
+			
+			npclockbutton = create_frame(settings_frame, "Lock Npc", "Lock Npc", locknpc)
+			
+			plrlockbutton = create_frame(settings_frame, "Lock Player", "Lock Player", lockplayer)
+			
+			teamlockbutton = create_frame(settings_frame, "Lock Team", "Lock Team", lockteam)
+			
+			predictmovementbutton = create_frame(settings_frame, "Predict Movement", "Predict Movement", predict_movement)
+
+			radiustext = create_frame(settings_frame, "Radius", "Radius", detectionRadius)
+			
+			lockafterdeadbutton = create_frame(settings_frame, "Lock after dead", "Lock after dead", lock_after_dead)
+			
+			distancetext = create_frame(settings_frame, "Distance", "distance between players and target when lock", distance)
+			
+			add_plrs_button = create_frame(settings_frame, "Detect instance", "Detect instance that got added", run_add_plr)
+
+			remove_plrs_button = create_frame(settings_frame, "Detect instance", "Detect instance that got removed", run_remove_plr)
+		end
+
+		catagories_frame = Instance.new("ScrollingFrame")
+		catagories_frame.Active = true
+		catagories_frame.BackgroundTransparency = .25
+		catagories_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+		catagories_frame.Position = UDim2.new(0, 0, 0.1, 0)
+		catagories_frame.Size = UDim2.new(.25,0,0.9,0)
+		catagories_frame.CanvasSize = UDim2.new(0,0,0,0)
+		catagories_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		catagories_frame.ScrollBarThickness = 0
+		catagories_frame.Parent = main_frame
+		UiStroke(catagories_frame)
+
+		do
+			local grid = Instance.new("UIGridLayout")
+			grid.CellPadding = UDim2.new(0,0,0,1)
+			grid.CellSize = UDim2.new(1,0,.15,0)
+			grid.FillDirection = "Horizontal"
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			grid.VerticalAlignment = Enum.VerticalAlignment.Top
+			grid.Parent = catagories_frame
+
+			current_catagory = settings_frame
+			
+			create_button_catagory(catagories_frame, "BackShot", back_shot_frame)
+			
+			create_button_catagory(catagories_frame, "Ignore Players", ignore_players_frame)
+			
+			create_button_catagory(catagories_frame, "Settings", settings_frame)
+
+		end
+		
+	end
+
+	ignore_players_frame = Instance.new("Frame")
+	ignore_players_frame.Draggable = true
+	ignore_players_frame.Active = true
+	ignore_players_frame.Visible = false
+	ignore_players_frame.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+	ignore_players_frame.Position = UDim2.new(0.25, 0, 0.15, 0)
+	ignore_players_frame.Size = UDim2.new(.2,0,0.15,0)
+	ignore_players_frame.Parent = screen
+
+	do
+		ignore_players_scrollframe = Instance.new("ScrollingFrame")
+		ignore_players_scrollframe.Active = true
+		ignore_players_scrollframe.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+		ignore_players_scrollframe.Position = UDim2.new(0, 0, 0.2, 0)
+		ignore_players_scrollframe.Size = UDim2.new(1,0,0.8,0)
+		ignore_players_scrollframe.CanvasSize = UDim2.new(0,0,0,0)
+		ignore_players_scrollframe.AutomaticCanvasSize = Enum.AutomaticSize.Y
+		ignore_players_scrollframe.ScrollBarThickness = 0
+		ignore_players_scrollframe.Parent = ignore_players_frame
+
+		do
+			local grid = Instance.new("UIGridLayout")
+			grid.Parent = ignore_players_scrollframe
+			grid.CellPadding = UDim2.new(0,0,0,0)
+			grid.CellSize = UDim2.new(.5,0,.4,0)
+			grid.FillDirection = "Horizontal"
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			grid.VerticalAlignment = Enum.VerticalAlignment.Top
+		end
+	end
+
+	extrascreen = Instance.new("ScreenGui")
+	extrascreen.Name = "NickExtra_Aim"
+	extrascreen.ResetOnSpawn = false
+	extrascreen.Parent = plr.PlayerGui
+
+	do
+		radius = Instance.new("Frame")
+		radius.Size = UDim2.new(0, detectionRadius*2, 0, detectionRadius*2)
+		radius.BackgroundTransparency = .75
+		radius.Parent = extrascreen
+
+		do
+			local e = Instance.new("UICorner")
+			e.Parent = radius
+			e.CornerRadius = UDim.new(1,0)
+		end
+	end
+	
+	show_button = Instance.new("TextButton")
+	show_button.Active = true
+	show_button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	show_button.TextColor3 = Color3.fromRGB(255, 170, 0)
+	show_button.Size = UDim2.new(0.05, 0, 0.085, 0)
+	show_button.Text = "Show"
+	show_button.Visible = false
+	show_button.Parent = screen
+	UiCorner(show_button, UDim.new(0.1,0))
+	
+end
+
+-----Startup-----
+local function create_plr_b(p)
+	local partbutton = Instance.new("TextButton")
+	partbutton.Text = p.Name
+	partbutton.BackgroundColor3 = falsecolor
+	partbutton.Parent = ignore_players_scrollframe
+	partbutton.Activated:Connect(function()
+		if table.find(ignore_players, p.Name) then
+			table.remove(ignore_players, table.find(ignore_players, p.Name))
+			partbutton.BackgroundColor3 = falsecolor
+			return
+		else
+			table.insert(ignore_players, p.Name)
+			partbutton.BackgroundColor3 = truecolor
+		end
+	end)
+end
+
+local function remove_plr_b(p)
+	local partbutton = ignore_players_scrollframe:FindFirstChild(p.Name)
+	if partbutton then
+		partbutton:Destroy()
+	end
+end
+
+for _,p in pairs(players:GetPlayers()) do
+	if table.find(ignore_players, p.Name) then return end
+	create_plr_b(p)
+end
+
+players.PlayerAdded:Connect(function(player)
+	if table.find(ignore_players, player.Name) then return end
+	create_plr_b(player)
+end)
+
+players.PlayerRemoving:Connect(function(player)
+	if table.find(ignore_players, player.Name) then
+		table.remove(ignore_players, table.find(ignore_players, player.Name))
+	end
+	remove_plr_b(player)
+end)
+
+local function create_settings(parent, description: string, value: any)
+	local frame = Instance.new("Frame")
+	frame.BackgroundColor3 = Color3.fromRGB(85, 73, 68)
+	frame.Parent = parent
+
+	local text_label = Instance.new("TextLabel")
+	text_label.Text = description
+	text_label.BackgroundTransparency = 1
+	text_label.RichText = true
+	text_label.TextScaled = true
+	text_label.Size = UDim2.new(.75,0,1,0)
+	text_label.Parent = frame
+
+	local e
+
+	if typeof(value) == "boolean" then
+		e = Instance.new("TextButton")
+		e.Text = "  "
+		e.BackgroundColor3 = if value then truecolor else falsecolor
+	elseif typeof(value) == "number" then
+		e = Instance.new("TextBox")
+		e.Text = tostring(value)
+	end
+
+	e.Position = UDim2.new(.75,0,0,0)
+	e.Size = UDim2.new(.25,0,1,0)
+	e.Parent = frame
+end
+
+-----Startup-----
+
+-----Function-----
+close_button.Activated:Connect(function()
+	enable = false
+	DESTROYED = true
+	screen:Destroy()
+	extrascreen:Destroy()
+end)
+
+minimize_button.MouseButton1Click:Connect(function()
+	Minimized = true
+	main_frame.Visible = false
+	show_button.Visible = true
+
+	for _,v in pairs(screen:GetChildren()) do
+		if v == main_frame then continue end
+		if v == show_button then continue end
+		if frame_store[v] then continue end
+		frame_store[v] = v.Visible
+		v.Visible = false
+	end
+end)
+
+show_button.Activated:Connect(function()
+	Minimized = false
+	main_frame.Visible = true
+	show_button.Visible = false
+
+	for i,v in pairs(frame_store) do
+		i.Visible = v
+	end
+
+	frame_store = {}
+end)
+
+radiustext.Changed:Connect(function()
+	if typeof(tonumber(radiustext.Text)) == "number" then
+		detectionRadius = tonumber(radiustext.Text)
+		radius.Size = UDim2.new(0, detectionRadius*2, 0, detectionRadius*2)
+	end
+end)
+
+distancetext.Changed:Connect(function()
+	if typeof(tonumber(distancetext.Text)) == "number" then
+		distance = tonumber(distancetext.Text)
+	end
+end)
+
+mainrun = rs.RenderStepped:Connect(function()
+	if DESTROYED then
+		mainrun:Disconnect()
+		mouse_run:Disconnect()
+		lockon_runner:Disconnect()
+		return
+	end
+
+	if not targetenemy 
+		or not (targetenemy:IsDescendantOf(child_table.plr_folder) or not targetenemy:IsDescendantOf(child_table.npc_folder))
+		or (targetenemy.Humanoid:GetState() == Enum.HumanoidStateType.Dead and not lock_after_dead) then
+		targetenemy = nil
+	end
+end)
+
+mouse_run = plr_mouse.Move:Connect(function()
+	task.spawn(function()
+		local x,y = getMousePosition()
+		radius.Position = UDim2.new(0, x, 0, y) - UDim2.new(
+			radius.Size.X.Scale / 2, radius.Size.X.Offset / 2,
+			radius.Size.Y.Scale / 2, radius.Size.Y.Offset / 2
+		)
+	end)
+
+	if enable and targetenemy == nil then
+		AimLock()
+	end
+end)
+
+lockon_runner = rs.RenderStepped:Connect(function()
+	if targetenemy and (targetenemy:IsDescendantOf(child_table.plr_folder) or targetenemy:IsDescendantOf(child_table.npc_folder)) then
+		lockon()
+	end
+end)
+
+lockafterdeadbutton.Activated:Connect(function()
+	lock_after_dead = not lock_after_dead
+	lockafterdeadbutton.BackgroundColor3 = if lock_after_dead then truecolor else falsecolor
+end)
+
+plrlockbutton.Activated:Connect(function()
+	lockplayer = not lockplayer
+	plrlockbutton.BackgroundColor3 = if lockplayer then truecolor else falsecolor
+end)
+
+teamlockbutton.Activated:Connect(function()
+	lockteam = not lockteam
+	teamlockbutton.BackgroundColor3 = if lockteam then truecolor else falsecolor
+end)
+
+predictmovementbutton.Activated:Connect(function()
+	predict_movement = not predict_movement
+	predictmovementbutton.BackgroundColor3 = if predict_movement then truecolor else falsecolor
+end)
+
+npclockbutton.Activated:Connect(function()
+	locknpc = not locknpc
+	npclockbutton.BackgroundColor3 = if locknpc then truecolor else falsecolor
+end)
+
+inputrun = uis.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+	if DESTROYED then inputrun:Disconnect() return end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton3 then
+		enable = not enable
+		targetenemy = nil
+		colorstatus.BackgroundColor3 = if enable then truecolor else falsecolor
+	end
+end)
