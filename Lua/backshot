@@ -1,5 +1,5 @@
 -- Goal: Universal System
--- Date Updated -- 6:30 AM -- 12/2/2026 -- DD/MM/YYYY
+-- Date Updated -- 9:30 PM -- 15/3/2026 -- DD/MM/YYYY
 
 local players = game:GetService("Players")
 local uis = game:GetService("UserInputService")
@@ -140,7 +140,6 @@ local show_button : TextButton
 local close_button : TextButton
 local minimize_button : TextButton
 
-local selectpartframe
 local ignore_players_scrollframe
 
 local refresh_button : TextButton
@@ -148,7 +147,6 @@ local add_decent_button : TextButton
 local remove_decent_button : TextButton
 
 local ignore_players_button
-local selectpartbutton
 local lockafterdeadbutton
 local colorstatus
 local radiustext
@@ -739,37 +737,6 @@ players.PlayerRemoving:Connect(function(player)
 	end
 	remove_plr_b(player)
 end)
-
-local function create_settings(parent, description: string, value: any)
-	local frame = Instance.new("Frame")
-	frame.BackgroundColor3 = Color3.fromRGB(85, 73, 68)
-	frame.Parent = parent
-
-	local text_label = Instance.new("TextLabel")
-	text_label.Text = description
-	text_label.BackgroundTransparency = 1
-	text_label.RichText = true
-	text_label.TextScaled = true
-	text_label.Size = UDim2.new(.75,0,1,0)
-	text_label.Parent = frame
-
-	local e
-
-	if typeof(value) == "boolean" then
-		e = Instance.new("TextButton")
-		e.Text = "  "
-		e.BackgroundColor3 = if value then truecolor else falsecolor
-	elseif typeof(value) == "number" then
-		e = Instance.new("TextBox")
-		e.Text = tostring(value)
-	end
-
-	e.Position = UDim2.new(.75,0,0,0)
-	e.Size = UDim2.new(.25,0,1,0)
-	e.Parent = frame
-end
-
------Startup-----
 
 -----Function-----
 close_button.Activated:Connect(function()

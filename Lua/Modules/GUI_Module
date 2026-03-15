@@ -1,0 +1,95 @@
+local module = {}
+
+module.create_frame(parent, title: string, description: string, value: any, extra_value: any)
+	local frame = Instance.new("Frame")
+	frame.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
+	frame.Parent = parent
+	UiStroke(frame)
+
+	local title_label = Instance.new("TextLabel")
+	title_label.Text = title
+	title_label.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title_label.TextStrokeTransparency = 0
+	title_label.TextXAlignment = Enum.TextXAlignment.Left
+	title_label.BackgroundTransparency = 1
+	title_label.RichText = true
+	title_label.TextScaled = true
+	title_label.Position = UDim2.new(0,0,0,0)
+	title_label.Size = UDim2.new(.75,0,.6,0)
+	title_label.Parent = frame
+
+	local description_label
+
+	if description then
+		description_label = Instance.new("TextLabel")
+		description_label.Text = description
+		description_label.TextColor3 = Color3.fromRGB(200, 200, 200)
+		description_label.TextXAlignment = Enum.TextXAlignment.Left
+		description_label.BackgroundTransparency = 1
+		description_label.RichText = true
+		description_label.TextScaled = true
+		description_label.Position = UDim2.new(0,0,.6,0)
+		description_label.Size = UDim2.new(.75,0,.4,0)
+		description_label.Parent = frame
+	end
+
+	local function make_value(value)
+		local button
+		if value == nil then return end
+
+		if typeof(value) == "boolean" then
+			button = Instance.new("TextButton")
+			button.Text = "  "
+			button.BackgroundColor3 = if value then truecolor else falsecolor
+		elseif typeof(value) == "number" then
+			button = Instance.new("TextBox")
+			button.Text = tostring(value)
+		end
+
+		if value == "Click" then
+			button = Instance.new("TextButton")
+			button.Text = ">"
+			button.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+			button.TextScaled = true
+		elseif value == "Select" then
+			button = Instance.new("TextButton")
+			button.Text = "None"
+			button.TextScaled = true
+			button.TextWrapped = true
+		end
+
+		return button
+	end
+
+	local e1 = make_value(value)
+	local e2 = make_value(extra_value)
+
+	if e2 then
+		title_label.Size = UDim2.new(.5,0,.6,0)
+		if description_label then
+			description_label.Size = UDim2.new(.5,0,.4,0)
+		end
+
+		e1.Position = UDim2.new(.75,0,0,0)
+		e1.Size = UDim2.new(.25,0,1,0)
+		e1.Parent = frame
+
+		e2.Position = UDim2.new(.5,0,0,0)
+		e2.Size = UDim2.new(.25,0,1,0)
+		e2.Parent = frame
+		return e1, e2
+	else
+		title_label.Size = UDim2.new(.75,0,.6,0)
+
+		if description_label then
+			description_label.Size = UDim2.new(.75,0,.4,0)
+		end
+
+		e1.Position = UDim2.new(.75,0,0,0)
+		e1.Size = UDim2.new(.25,0,1,0)
+		e1.Parent = frame
+		return e1
+	end
+end
+
+return module
