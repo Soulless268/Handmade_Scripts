@@ -1,5 +1,16 @@
-return {
-	[130818724007978] = { ---TSB KJ
+local module = {}
+
+function missing(t, f, fallback)
+	if type(f) == t then return f end
+	return fallback
+end
+
+everyClipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
+
+module.found_place = false
+module.child_table = {}
+module.paths = {
+[130818724007978] = { ---TSB KJ
 		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
 		npc_folder = nil
 	},
@@ -24,3 +35,54 @@ return {
 		npc_folder = nil
 	}
 }
+
+for i,v in pairs(PlaceID) do
+	if game.PlaceId == i and not module.found_place then
+		if v.plr_folder or v.npc_folder then
+			module.child_table = v
+			module.found_place = true
+		else
+			warn("is it outdated?")
+			if everyClipboard then
+				everyClipboard(tostring(game.PlaceId))
+				warn("Clipboard", "Copied to clipboard")
+			else
+				warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
+			end
+		end
+	end
+end
+
+if not module.found_place then
+	module.child_table = {
+		plr_folder = {path = workspace, found = false},
+		npc_folder = {path = workspace, found = false},
+	}
+
+	warn("Place not found, Place ID is ", game.PlaceId)
+	--Find Player Folder then if found expect it to have npc inside
+	if not module.child_table.plr_folder.found then
+		for _,c: Instance in pairs(workspace:GetDescendants()) do
+			if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
+				if module.child_table.plr_folder.found then break end
+				print("Found Player Folder in ", c.Parent.Parent.Name)
+				module.child_table.plr_folder.path = c.Parent.Parent
+				module.child_table.plr_folder.found = true
+			end
+		end
+	end
+
+	if not module.child_table.npc_folder.found then
+		for _,c: Instance in pairs(workspace:GetDescendants()) do
+			if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
+				if module.child_table.npc_folder.found then break end
+				print("Found NPC Folder in ", c.Parent.Parent.Name)
+				module.child_table.npc_folder.path = c.Parent.Parent
+				module.child_table.npc_folder.found = true
+			end
+		end
+	end
+
+end
+
+return module
