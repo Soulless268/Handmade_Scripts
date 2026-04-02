@@ -36,7 +36,7 @@ module.paths = {
 	}
 }
 
-for i,v in pairs(PlaceID) do
+for i,v in pairs(module.paths) do
 	if game.PlaceId == i and not module.found_place then
 		if v.plr_folder or v.npc_folder then
 			module.child_table = v
