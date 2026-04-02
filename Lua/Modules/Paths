@@ -1,5 +1,7 @@
 local module = {}
 
+local players = game:GetService("Players")
+
 function missing(t, f, fallback)
 	if type(f) == t then return f end
 	return fallback
@@ -43,12 +45,6 @@ for i,v in pairs(module.paths) do
 			module.found_place = true
 		else
 			warn("is it outdated?")
-			if everyClipboard then
-				everyClipboard(tostring(game.PlaceId))
-				warn("Clipboard", "Copied to clipboard")
-			else
-				warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
-			end
 		end
 	end
 end
@@ -60,6 +56,12 @@ if not module.found_place then
 	}
 
 	warn("Place not found, Place ID is ", game.PlaceId)
+	if everyClipboard then
+		everyClipboard(tostring(game.PlaceId))
+		warn("Clipboard", "Copied to clipboard")
+	else
+		warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
+	end
 	--Find Player Folder then if found expect it to have npc inside
 	if not module.child_table.plr_folder.found then
 		for _,c: Instance in pairs(workspace:GetDescendants()) do
