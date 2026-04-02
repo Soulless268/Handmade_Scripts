@@ -14,32 +14,9 @@ local cam = workspace.CurrentCamera
 local child_table
 local foundPlace = false
 
-local PlaceID = {
-	[130818724007978] = { ---TSB KJ
-		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
-		npc_folder = nil
-	},
-	[10449761463] = { ---TSB
-		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
-		npc_folder = nil
-	},
-	[78041891124723] = { --Blood Debt
-		plr_folder = {path = workspace:FindFirstChild("NPCSFolder"), found = true},
-		npc_folder = nil
-	},
-	[155615604] = { --Prison Life
-		plr_folder = {path = workspace, found = true},
-		npc_folder = nil
-	},
-	[18519254033] = { --Jump Showdown
-		plr_folder = {path = workspace:FindFirstChild("Models"), found = true},
-		npc_folder = {path = workspace:FindFirstChild("Models"), found = true}
-	},
-	[14112387344] = { --Divine Duality Elemental
-		plr_folder = {path = workspace:FindFirstChild("Entities"), found = true},
-		npc_folder = nil
-	}
-}
+local PlaceID = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Paths"))
+
+print(PlaceID)
 
 for i,v in pairs(PlaceID) do
 	if game.PlaceId == i and not foundPlace then

@@ -18,27 +18,27 @@ local foundPlace = false
 
 local PlaceID = {
 	[130818724007978] = { ---TSB KJ
-		plr_folder = workspace:FindFirstChild("Live"),
+		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
 		npc_folder = nil
 	},
 	[10449761463] = { ---TSB
-		plr_folder = workspace:FindFirstChild("Live"),
+		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
 		npc_folder = nil
 	},
 	[78041891124723] = { --Blood Debt
-		plr_folder = workspace:FindFirstChild("NPCSFolder"),
+		plr_folder = {path = workspace:FindFirstChild("NPCSFolder"), found = true},
 		npc_folder = nil
 	},
 	[155615604] = { --Prison Life
-		plr_folder = workspace,
+		plr_folder = {path = workspace, found = true},
 		npc_folder = nil
 	},
 	[18519254033] = { --Jump Showdown
-		plr_folder = workspace:FindFirstChild("Models"),
-		npc_folder = workspace:FindFirstChild("Models")
+		plr_folder = {path = workspace:FindFirstChild("Models"), found = true},
+		npc_folder = {path = workspace:FindFirstChild("Models"), found = true}
 	},
 	[14112387344] = { --Divine Duality Elemental
-		plr_folder = workspace:FindFirstChild("Entities"),
+		plr_folder = {path = workspace:FindFirstChild("Entities"), found = true},
 		npc_folder = nil
 	}
 }
