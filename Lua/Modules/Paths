@@ -12,7 +12,7 @@ everyClipboard = missing("function", setclipboard or toclipboard or set_clipboar
 module.found_place = false
 module.child_table = {}
 module.paths = {
-[130818724007978] = { ---TSB KJ
+	[130818724007978] = { ---TSB KJ
 		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
 		npc_folder = nil
 	},
