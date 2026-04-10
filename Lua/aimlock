@@ -11,55 +11,8 @@ local hrp = char:WaitForChild("HumanoidRootPart") :: Part
 local plr_mouse = plr:GetMouse()
 local cam = workspace.CurrentCamera
 
-local child_table
-local foundPlace = false
-
-local PlaceID = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Paths"))
-
-print(PlaceID)
-
-for i,v in pairs(PlaceID) do
-	if game.PlaceId == i and not foundPlace then
-		if v.plr_folder or v.npc_folder then
-			child_table = v
-			foundPlace = true
-		else
-			warn("is it outdated?")
-		end
-	end
-end
-
-if not foundPlace then
-	child_table = {
-		plr_folder = {path = workspace, found = false},
-		npc_folder = {path = workspace, found = false},
-	}
-
-	warn("Place not found, Place ID is ", game.PlaceId)
-	--Find Player Folder then if found expect it to have npc inside
-	if not child_table.plr_folder.found then
-		for _,c: Instance in pairs(workspace:GetDescendants()) do
-			if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
-				if child_table.plr_folder.found then break end
-				print("Found Player Folder in ", c.Parent.Parent.Name)
-				child_table.plr_folder.path = c.Parent.Parent
-				child_table.plr_folder.found = true
-			end
-		end
-	end
-
-	if not child_table.npc_folder.found then
-		for _,c: Instance in pairs(workspace:GetDescendants()) do
-			if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
-				if child_table.npc_folder.found then break end
-				print("Found NPC Folder in ", c.Parent.Parent.Name)
-				child_table.npc_folder.path = c.Parent.Parent
-				child_table.npc_folder.found = true
-			end
-		end
-	end
-
-end
+local paths_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Paths"))()
+local child_table = paths_module.child_table
 
 -----Settings-----
 local Minimized = false
