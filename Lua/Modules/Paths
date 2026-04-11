@@ -14,19 +14,19 @@ module.child_table = {}
 module.paths = {
 	[130818724007978] = { ---TSB KJ
 		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
-		npc_folder = nil
+		npc_folder = {path = nil, found = false}
 	},
 	[10449761463] = { ---TSB
 		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
-		npc_folder = nil
+		npc_folder = {path = nil, found = false}
 	},
 	[78041891124723] = { --Blood Debt
 		plr_folder = {path = workspace:FindFirstChild("NPCSFolder"), found = true},
-		npc_folder = nil
+		npc_folder = {path = nil, found = false}
 	},
 	[155615604] = { --Prison Life
 		plr_folder = {path = workspace, found = true},
-		npc_folder = nil
+		npc_folder = {path = nil, found = false}
 	},
 	[18519254033] = { --Jump Showdown
 		plr_folder = {path = workspace:FindFirstChild("Models"), found = true},
@@ -34,10 +34,14 @@ module.paths = {
 	},
 	[14112387344] = { --Divine Duality Elemental
 		plr_folder = {path = workspace:FindFirstChild("Entities"), found = true},
-		npc_folder = nil
+		npc_folder = {path = nil, found = false}
+	},
+	[9503261072] = {
+		plr_folder = {path = workspace, found = true},
+		npc_folder = {path = nil, found = false},
 	},
 	[11739766412] = { -- TDX in game
-		plr_folder = nil,
+		plr_folder = {path = workspace.Game.RaycastIgnore:FindFirstChild("Characters"), found = true},
 		npc_folder = {path = workspace.Game:FindFirstChild("Enemies"), found = true, step = 2}
 	}
 }
@@ -66,29 +70,29 @@ if not module.found_place then
 	else
 		warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
 	end
-	--Find Player Folder then if found expect it to have npc inside
-	if not module.child_table.plr_folder.found then
-		for _,c: Instance in pairs(workspace:GetDescendants()) do
-			if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
-				if module.child_table.plr_folder.found then break end
-				print("Found Player Folder in ", c.Parent.Parent.Name)
-				module.child_table.plr_folder.path = c.Parent.Parent
-				module.child_table.plr_folder.found = true
-			end
+end
+
+--Find Player Folder then if found expect it to have npc inside
+if not module.child_table.plr_folder.found then
+	for _,c: Instance in pairs(workspace:GetDescendants()) do
+		if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
+			if module.child_table.plr_folder.found then break end
+			print("Found Player Folder in ", c.Parent.Parent.Name)
+			module.child_table.plr_folder.path = c.Parent.Parent
+			module.child_table.plr_folder.found = true
 		end
 	end
+end
 
-	if not module.child_table.npc_folder.found then
-		for _,c: Instance in pairs(workspace:GetDescendants()) do
-			if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
-				if module.child_table.npc_folder.found then break end
-				print("Found NPC Folder in ", c.Parent.Parent.Name)
-				module.child_table.npc_folder.path = c.Parent.Parent
-				module.child_table.npc_folder.found = true
-			end
+if not module.child_table.npc_folder.found then
+	for _,c: Instance in pairs(workspace:GetDescendants()) do
+		if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
+			if module.child_table.npc_folder.found then break end
+			print("Found NPC Folder in ", c.Parent.Parent.Name)
+			module.child_table.npc_folder.path = c.Parent.Parent
+			module.child_table.npc_folder.found = true
 		end
 	end
-
 end
 
 return module
