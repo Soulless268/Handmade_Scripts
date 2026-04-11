@@ -197,10 +197,23 @@ local function get_child_folder(name)
 	if not child_table[name] then return end
 	local folder = child_table[name].path :: Folder
 	local found = child_table[name].found :: boolean
+	local step = child_table[name].step or 1 :: number
 	local children
 	if not folder then return end
 	if folder ~= workspace and found then
-		children = folder:GetChildren()
+		if step > 1 then
+			local all_child = {}
+			if step == 2 then
+				for _,v in pairs(folder:GetChildren()) do
+					for _,obj in pairs(v:GetChildren()) do
+						table.insert(all_child, obj)
+					end
+				end
+			end
+			children = all_child
+		else
+			children = folder:GetChildren()
+		end
 	elseif folder == workspace and not found then
 		children = folder:GetDescendants()
 	elseif folder == workspace and found then
