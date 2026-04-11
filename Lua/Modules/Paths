@@ -35,7 +35,7 @@ module.paths = {
 	[14112387344] = { --Divine Duality Elemental
 		plr_folder = {path = workspace:FindFirstChild("Entities"), found = true},
 		npc_folder = nil
-	}
+	},
 	[11739766412] = { -- TDX in game
 		plr_folder = nil,
 		npc_folder = {path = workspace.Game:FindFirstChild("Enemies"), found = true, step = 2}
