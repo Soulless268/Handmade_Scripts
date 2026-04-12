@@ -56,10 +56,10 @@ module.paths = {
 }
 
 module.get_child_folder = function(name)
-	if not child_table[name] then return end
-	local folder = child_table[name].path :: Folder
-	local found = child_table[name].found :: boolean
-	local step = child_table[name].step or 1 :: number
+	if not module.child_table[name] then return end
+	local folder = module.child_table[name].path :: Folder
+	local found = module.child_table[name].found :: boolean
+	local step = module.child_table[name].step or 1 :: number
 	local children
 	if not folder then return folder:GetDescendants() end
 	if folder ~= workspace and found then
