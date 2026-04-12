@@ -7,21 +7,30 @@ function missing(t, f, fallback)
 	return fallback
 end
 
+function safeFind(root, ...)
+	local current = root
+	for _, name in ipairs({...}) do
+		if not current then return nil end
+		current = current:FindFirstChild(name)
+	end
+	return current
+end
+
 everyClipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
 
 module.found_place = false
 module.child_table = {}
 module.paths = {
 	[130818724007978] = { ---TSB KJ
-		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
+		plr_folder = {path = safeFind(workspace, "Live"), found = true},
 		npc_folder = {path = nil, found = false}
 	},
 	[10449761463] = { ---TSB
-		plr_folder = {path = workspace:FindFirstChild("Live"), found = true},
+		plr_folder = {path = safeFind(workspace, "Live"), found = true},
 		npc_folder = {path = nil, found = false}
 	},
 	[78041891124723] = { --Blood Debt
-		plr_folder = {path = workspace:FindFirstChild("NPCSFolder"), found = true},
+		plr_folder = {path = safeFind(workspace, "NPCSFolder"), found = true},
 		npc_folder = {path = nil, found = false}
 	},
 	[155615604] = { --Prison Life
@@ -29,11 +38,11 @@ module.paths = {
 		npc_folder = {path = nil, found = false}
 	},
 	[18519254033] = { --Jump Showdown
-		plr_folder = {path = workspace:FindFirstChild("Models"), found = true},
-		npc_folder = {path = workspace:FindFirstChild("Models"), found = true}
+		plr_folder = {path = safeFind(workspace, "Models"), found = true},
+		npc_folder = {path = safeFind(workspace, "Models"), found = true}
 	},
 	[14112387344] = { --Divine Duality Elemental
-		plr_folder = {path = workspace:FindFirstChild("Entities"), found = true},
+		plr_folder = {path = safeFind(workspace, "Entities"), found = true},
 		npc_folder = {path = nil, found = false}
 	},
 	[9503261072] = {
@@ -41,8 +50,8 @@ module.paths = {
 		npc_folder = {path = nil, found = false},
 	},
 	[11739766412] = { -- TDX in game
-		plr_folder = {path = workspace.Game.RaycastIgnore:FindFirstChild("Characters"), found = true},
-		npc_folder = {path = workspace.Game:FindFirstChild("Enemies"), found = true, step = 2}
+		plr_folder = {path = safeFind(workspace, "Game", "RaycastIgnore", "Characters"), found = true},
+		npc_folder = {path = safeFind(workspace, "Game", "Enemies"), found = true, step = 2}
 	}
 }
 
