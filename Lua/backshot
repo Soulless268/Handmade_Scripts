@@ -13,58 +13,10 @@ local hrp = char:WaitForChild("HumanoidRootPart") :: Part
 local hum = char:WaitForChild("Humanoid") :: Humanoid
 local plr_mouse = plr:GetMouse()
 
-local child_table
 local foundPlace = false
 
-local PlaceID = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Paths"))()
-
-for i,v in pairs(PlaceID) do
-	if game.PlaceId == i and not foundPlace then
-		if v.plr_folder or v.npc_folder then
-			child_table = v
-			foundPlace = true
-		else
-			
-			warn("is it outdated?")
-		end
-	end
-end
-
-if not foundPlace then
-	child_table = {
-		plr_folder = workspace,
-		npc_folder = workspace,
-	}
-	
-	local found_plr_folder = false
-	local found_npc_folder = false
-	
-	warn("Place not found, Place ID is ", game.PlaceId)
-	--Find Player Folder then if found expect it to have npc inside
-	if not found_plr_folder then
-		for _,c: Instance in pairs(workspace:GetDescendants()) do
-			if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
-				if found_plr_folder then break end
-				print("Found Player Folder in ", c.Parent.Parent.Name)
-				child_table.plr_folder = c.Parent.Parent
-				foundPlace = true
-				found_plr_folder = true
-			end
-		end
-	end
-	
-	if not found_npc_folder then
-		for _,c: Instance in pairs(workspace:GetDescendants()) do
-			if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
-				if found_npc_folder then break end
-				print("Found NPC Folder in ", c.Parent.Parent.Name)
-				child_table.npc_folder = c.Parent.Parent
-				found_npc_folder = true
-			end
-		end
-	end
-	
-end
+local paths_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Paths"))()
+local child_table = paths_module.child_table
 
 -----Settings-----
 local Minimized = false
@@ -342,6 +294,47 @@ local function go_to_pos(pos, magnitude)
 	tws:Create(hrp, TweenInfo.new(time_), {CFrame = pos}):Play()
 end
 
+local function finding_(children)
+	for i,v in pairs(children) do
+		if v:IsA("Model") and v:FindFirstChild("Humanoid") then
+			if v == plr.Character then continue end
+			
+			local enemy = v
+			if enemy:FindFirstChild("HumanoidRootPart") then
+				local enemypos = enemy[targetpart].CFrame.Position
+				local playerpos = plr.Character.PrimaryPart.CFrame.Position
+
+				local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(enemypos)
+
+				if onScreen then
+					local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+					if dist <= detectionRadius then
+						
+						if not detect_through_wall then
+							local ray_param = RaycastParams.new()
+							ray_param.FilterType = Enum.RaycastFilterType.Exclude
+							ray_param.FilterDescendantsInstances = {plr.Character, enemy}
+							local raycast = workspace:Raycast(playerpos, enemypos, ray_param)
+							if raycast then continue end
+						end
+						
+						local enemyplr = game.Players:GetPlayerFromCharacter(enemy)
+						if enemyplr and lockplayer then
+							if not lockteam and enemyplr.Team == plr.Team then continue end
+							if table.find(ignore_players, enemyplr.Name) then continue end
+							targetenemy = enemy
+							return
+						elseif not enemyplr and locknpc then
+							targetenemy = enemy
+							return
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
 function lockon()
 	task.spawn(function()
 		if not character_available() then return end
@@ -368,65 +361,8 @@ function AimLock()
 	local mousePos = game.UserInputService:GetMouseLocation()
 	local lastmagnitude = math.huge --just for the start
 
-	local c_plr
-	local c_npc
-
-	if foundPlace and child_table then
-		if child_table.plr_folder and child_table.npc_folder then
-			c_plr = child_table.plr_folder:GetChildren()
-			c_npc = child_table.npc_folder:GetChildren()
-		elseif child_table.npc_folder and not child_table.plr_folder then
-			c_plr = child_table.npc_folder:GetDescendants()
-			c_npc = child_table.npc_folder:GetChildren()
-		elseif child_table.plr_folder and not child_table.npc_folder then	
-			c_plr = child_table.plr_folder:GetChildren()
-			c_npc = child_table.plr_folder:GetDescendants()
-		end
-	else
-		c_plr = child_table.plr_folder:GetDescendants()
-		c_npc = child_table.npc_folder:GetDescendants()
-	end
-
-	local function finding_(children)
-		for i,v in pairs(children) do
-			if v:IsA("Model") and v:FindFirstChild("Humanoid") then
-				if v == plr.Character then continue end
-				
-				local enemy = v
-				if enemy:FindFirstChild("HumanoidRootPart") then
-					local enemypos = enemy[targetpart].CFrame.Position
-					local playerpos = plr.Character.PrimaryPart.CFrame.Position
-
-					local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(enemypos)
-
-					if onScreen then
-						local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-						if dist <= detectionRadius then
-							
-							if not detect_through_wall then
-								local ray_param = RaycastParams.new()
-								ray_param.FilterType = Enum.RaycastFilterType.Exclude
-								ray_param.FilterDescendantsInstances = {plr.Character, enemy}
-								local raycast = workspace:Raycast(playerpos, enemypos, ray_param)
-								if raycast then continue end
-							end
-							
-							local enemyplr = game.Players:GetPlayerFromCharacter(enemy)
-							if enemyplr and lockplayer then
-								if not lockteam and enemyplr.Team == plr.Team then continue end
-								if table.find(ignore_players, enemyplr.Name) then continue end
-								targetenemy = enemy
-								return
-							elseif not enemyplr and locknpc then
-								targetenemy = enemy
-								return
-							end
-						end
-					end
-				end
-			end
-		end
-	end
+	local c_plr = paths_module.get_child_folder("plr_folder")
+	local c_npc = paths_module.get_child_folder("npc_folder")
 
 	if locknpc then
 		finding_(c_npc)

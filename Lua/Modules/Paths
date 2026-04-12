@@ -46,6 +46,33 @@ module.paths = {
 	}
 }
 
+module.get_child_folder = function(name)
+	if not child_table[name] then return end
+	local folder = child_table[name].path :: Folder
+	local found = child_table[name].found :: boolean
+	local step = child_table[name].step or 1 :: number
+	local children
+	if not folder then return folder:GetDescendants() end
+	if folder ~= workspace and found then
+		if step > 1 then
+			local all_child = {}
+			if step == 2 then
+				for _,v in pairs(folder:GetChildren()) do
+					table.insert(all_child, v)
+				end
+			end
+			children = all_child
+		else
+			children = folder:GetChildren()
+		end
+	elseif folder == workspace and not found then
+		children = folder:GetDescendants()
+	elseif folder == workspace and found then
+		children = folder:GetChildren()
+	end
+	return children
+end
+
 for i,v in pairs(module.paths) do
 	if game.PlaceId == i and not module.found_place then
 		if v.plr_folder or v.npc_folder then
