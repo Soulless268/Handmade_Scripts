@@ -23,27 +23,27 @@ module.child_table = {}
 module.paths = {
 	[130818724007978] = { ---TSB KJ
 		plr_folder = {path = safeFind(workspace, "Live"), found = true},
-		npc_folder = {path = nil, found = false}
+		npc_folder = {path = nil, found = false},
 	},
 	[10449761463] = { ---TSB
 		plr_folder = {path = safeFind(workspace, "Live"), found = true},
-		npc_folder = {path = nil, found = false}
+		npc_folder = {path = nil, found = false},
 	},
 	[78041891124723] = { --Blood Debt
 		plr_folder = {path = safeFind(workspace, "NPCSFolder"), found = true},
-		npc_folder = {path = nil, found = false}
+		npc_folder = {path = nil, found = false},
 	},
 	[155615604] = { --Prison Life
 		plr_folder = {path = workspace, found = true},
-		npc_folder = {path = nil, found = false}
+		npc_folder = {path = nil, found = false},
 	},
 	[18519254033] = { --Jump Showdown
 		plr_folder = {path = safeFind(workspace, "Models"), found = true},
-		npc_folder = {path = safeFind(workspace, "Models"), found = true}
+		npc_folder = {path = safeFind(workspace, "Models"), found = true},
 	},
 	[14112387344] = { --Divine Duality Elemental
 		plr_folder = {path = safeFind(workspace, "Entities"), found = true},
-		npc_folder = {path = nil, found = false}
+		npc_folder = {path = nil, found = false},
 	},
 	[9503261072] = {
 		plr_folder = {path = workspace, found = true},
@@ -51,7 +51,11 @@ module.paths = {
 	},
 	[11739766412] = { -- TDX in game
 		plr_folder = {path = safeFind(workspace, "Game", "RaycastIgnore", "Characters"), found = true},
-		npc_folder = {path = safeFind(workspace, "Game", "Enemies"), found = true, step = 2}
+		npc_folder = {path = safeFind(workspace, "Game", "Enemies"), found = true, step = 2},
+	},
+	[13438553315] = {
+		plr_folder = {path = safeFind(workspace, "activePlayers"), found = true},
+		npc_folder = {path = safeFind(workspace, "activeHostiles"), found = true},
 	}
 }
 

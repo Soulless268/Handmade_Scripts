@@ -1,6 +1,32 @@
 local module = {}
 
-module.create_frame(parent, title: string, description: string, value: any, extra_value: any)
+module.create_button_catagory = function(parent, name: string, frame)
+	local button = Instance.new("TextButton")
+	button.Text = name
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.TextScaled = true
+	button.TextStrokeTransparency = 0
+	button.TextColor3 = Color3.fromRGB(255, 255, 255)
+	button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	button.Parent = parent
+	UiStroke(button)
+
+	button.Activated:Connect(function()
+		if current_catagory and current_catagory ~= frame then
+			current_catagory.Visible = false
+			current_catagory = frame
+			current_catagory.Visible = true
+		else
+			current_catagory = frame
+			current_catagory.Visible = true
+		end
+	end)
+
+
+	return button
+end
+
+module.create_frame = function(parent, title: string, description: string, value: any, extra_value: any)
 	local frame = Instance.new("Frame")
 	frame.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
 	frame.Parent = parent
