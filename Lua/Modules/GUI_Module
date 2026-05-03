@@ -1,5 +1,22 @@
 local module = {}
 
+local function UiCorner(Parent, Ui)
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = Ui
+	Corner.Parent = Parent
+	return Corner
+end
+
+local function UiStroke(Parent)
+	local Stroke = Instance.new("UIStroke")
+	Stroke.Color = Color3.fromRGB(255, 255, 255)
+	Stroke.Thickness = 1
+	Stroke.LineJoinMode = Enum.LineJoinMode.Miter
+	Stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	Stroke.Parent = Parent
+	return Stroke
+end
+
 module.create_button_catagory = function(parent, name: string, frame)
 	local button = Instance.new("TextButton")
 	button.Text = name
