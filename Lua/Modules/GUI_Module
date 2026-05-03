@@ -1,5 +1,8 @@
 local module = {}
 
+local truecolor = Color3.fromRGB(170, 170, 0)
+local falsecolor = Color3.fromRGB(163, 162, 165)
+
 local function UiCorner(Parent, Ui)
 	local Corner = Instance.new("UICorner")
 	Corner.CornerRadius = Ui
