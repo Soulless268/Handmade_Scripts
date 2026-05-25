@@ -56,6 +56,10 @@ module.paths = {
 	[13438553315] = {
 		plr_folder = {path = safeFind(workspace, "activePlayers"), found = true},
 		npc_folder = {path = safeFind(workspace, "activeHostiles"), found = true},
+	},
+	[11765763028] = {
+		plr_folder = {path = safeFind(workspace), found = true},
+		npc_folder = {path = safeFind(workspace, "Game", "Current", "NPCs"), found = true, step = 1},
 	}
 }
 
