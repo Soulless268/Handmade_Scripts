@@ -26,7 +26,7 @@ local locknpc = true -- Lock Npc or not
 local lockplayer = true -- Lock player or not
 local lockteam = true
 local predict_movement = true
-local detect_through_wall = true
+local detect_through_wall = false
 local lock_after_dead = false
 local detectionRadius = 50
 local totalTime_prediction = 10
@@ -217,6 +217,7 @@ local remove_decent_button : TextButton
 
 local selectpartbutton
 local lockafterdeadbutton
+local detectthroughwallbutton
 local colorstatus
 local radiustext
 local distancetext
@@ -356,6 +357,8 @@ do
 			radiustext = gui_module.create_frame(settings_frame, "Radius", "Radius", detectionRadius)
 
 			lockafterdeadbutton = gui_module.create_frame(settings_frame, "Lock after dead", "Lock after dead", lock_after_dead)
+
+			detectthroughwallbutton = gui_module.create_frame(settings_frame, "Detect Through Wall", "e", detect_through_wall)
 		end
 
 		catagories_frame = Instance.new("ScrollingFrame")
@@ -599,6 +602,11 @@ end)
 lockafterdeadbutton.Activated:Connect(function()
 	lock_after_dead = not lock_after_dead
 	lockafterdeadbutton.BackgroundColor3 = if lock_after_dead then truecolor else falsecolor
+end)
+
+detectthroughwallbutton.Activated:Connect(function()
+	detect_through_wall = not detect_through_wall
+	detectthroughwallbutton.BackgroundColor3 = if detect_through_wall then truecolor else falsecolor
 end)
 
 inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
