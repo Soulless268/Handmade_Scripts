@@ -23,7 +23,6 @@ function safeFind(root, ...)
 		elseif not temp_current:FindFirstChildOfClass("Model"):FindFirstChildOfClass("Humanoid") then
 			table.insert(blacklist, temp_current)
 		end
-
 	end
 
 	return current

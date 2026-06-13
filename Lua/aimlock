@@ -1,5 +1,6 @@
 -- Date Updated -- 9:30 PM -- 15/3/2026 -- DD/MM/YYYY
 
+local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
 local rp = game:GetService("ReplicatedStorage")
 local rs = game:GetService("RunService")
@@ -194,7 +195,7 @@ end
 local screen = Instance.new("ScreenGui")
 screen.Name = "NickAimLock"
 screen.ResetOnSpawn = false
-screen.Parent = plr.PlayerGui
+screen.Parent = coregui or plr.PlayerGui
 
 local extrascreen
 
@@ -623,3 +624,5 @@ inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
 		end
 	end
 end)
+
+print("successful run the aimlock")
