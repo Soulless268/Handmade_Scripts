@@ -622,6 +622,7 @@ inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
 		else
 			colorstatus.BackgroundColor3 = falsecolor
 		end
+		radius.BackgroundColor3 = colorstatus.BackgroundColor3
 	end
 end)
 
