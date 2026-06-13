@@ -12,9 +12,13 @@ local hrp = char:WaitForChild("HumanoidRootPart") :: Part
 local plr_mouse = plr:GetMouse()
 local cam = workspace.CurrentCamera
 
+print("aimlock: trying to run module")
+
 local gui_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/GUI_Module"))()
 local paths_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Paths"))()
 local child_table = paths_module.child_table
+
+print("aimlock: successful run module")
 
 -----Settings-----
 local Minimized = false
@@ -626,4 +630,4 @@ inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
 	end
 end)
 
-print("successful run the aimlock")
+print("aimlock: successful run the gui and function")
