@@ -8,11 +8,24 @@ function missing(t, f, fallback)
 end
 
 function safeFind(root, ...)
+	local blacklist = {}
 	local current = root
 	for _, name in ipairs({...}) do
-		if not current then return nil end
-		current = current:FindFirstChild(name)
+		if not current then return end
+		local temp_current = current:FindFirstChild(name)
+		if not temp_current then continue end
+		if table.find(blacklist, temp_current) then return end
+
+		if temp_current:FindFirstChildOfClass("Model") and temp_current:FindFirstChildOfClass("Model"):FindFirstChildOfClass("Humanoid") then
+			current = temp_current
+		elseif not temp_current:FindFirstChildOfClass("Model") then
+			table.insert(blacklist, temp_current)
+		elseif not temp_current:FindFirstChildOfClass("Model"):FindFirstChildOfClass("Humanoid") then
+			table.insert(blacklist, temp_current)
+		end
+
 	end
+
 	return current
 end
 
@@ -60,6 +73,10 @@ module.paths = {
 	[11765763028] = {
 		plr_folder = {path = safeFind(workspace), found = true},
 		npc_folder = {path = safeFind(workspace, "Game", "Current", "Spawned", "NPCs", "enemies"), found = true},
+	},
+	[3701546109] = {
+		plr_folder = {path = safeFind(workspace, "Model"), found = true},
+		npc_folder = {path = safeFind(workspace, "Model"), found = true},
 	}
 }
 
