@@ -8,7 +8,7 @@ local rs = game:GetService("RunService")
 local plr = players.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid") :: Humanoid
-local hrp = char:WaitForChild("HumanoidRootPart") :: Part
+local hrp = char:WaitForChild("HumanoidRootPart", 10) or char:WaitForChild("Root", 10) or char:FindFirstChildOfClass("Part") :: Part
 local plr_mouse = plr:GetMouse()
 local cam = workspace.CurrentCamera
 
