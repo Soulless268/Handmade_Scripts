@@ -30,6 +30,8 @@ local targetpart = "Head" --Head, HumanoidRootPart, Torso
 local locknpc = true -- Lock Npc or not
 local lockplayer = true -- Lock player or not
 local lockteam = true
+local show_highlight_plr_folder = false
+local show_highlight_npc_folder = false
 local predict_movement = true
 local detect_through_wall = false
 local lock_after_dead = false
@@ -230,6 +232,10 @@ local predictmovementbutton
 local npclockbutton
 local plrlockbutton
 local teamlockbutton
+local show_highlight_plr_folder_button
+local show_highlight_npc_folder_button
+local plr_folder_path
+local npc_folder_path
 
 local radius
 
@@ -364,6 +370,13 @@ do
 			lockafterdeadbutton = gui_module.create_frame(settings_frame, "Lock after dead", "Lock after dead", lock_after_dead)
 
 			detectthroughwallbutton = gui_module.create_frame(settings_frame, "Detect Through Wall", "e", detect_through_wall)
+			
+			show_highlight_plr_folder_button, show_highlight_npc_folder_button = gui_module.create_frame(settings_frame, "Show Highlight", "Player Folder | NPC Folder", false, false)
+
+			plr_folder_path = gui_module.create_frame(settings_frame, "Player Path", "Path", child_table.plr_folder.path:GetFullName())
+		
+			npc_folder_path = gui_module.create_frame(settings_frame, "NPC Path", "Path", child_table.npc_folder.path:GetFullName())
+
 		end
 
 		catagories_frame = Instance.new("ScrollingFrame")
@@ -612,6 +625,51 @@ end)
 detectthroughwallbutton.Activated:Connect(function()
 	detect_through_wall = not detect_through_wall
 	detectthroughwallbutton.BackgroundColor3 = if detect_through_wall then truecolor else falsecolor
+end)
+
+show_highlight_plr_folder_button.Activated:Connect(function()
+	show_highlight_plr_folder = not show_highlight_plr_folder
+	show_highlight_plr_folder_button.BackgroundColor3 = if show_highlight_plr_folder then truecolor else falsecolor
+	
+	local hl = child_table.plr_folder.path:FindFirstChildOfClass("Highlight")
+
+	if show_highlight_npc_folder then
+		if hl then return end
+		local new = Instance.new("Highlight")
+		new.FillTransparency = .9
+		new.FillColor = Color3.new(1, 1, 1)
+		new.Parent = child_table.plr_folder.path
+	else
+		if not hl then return end
+		hl:Destroy()
+	end
+end)
+
+show_highlight_npc_folder_button.Activated:Connect(function()
+	show_highlight_npc_folder = not show_highlight_npc_folder
+	show_highlight_npc_folder_button.BackgroundColor3 = if show_highlight_npc_folder then truecolor else falsecolor
+	
+	local hl = child_table.npc_folder.path:FindFirstChildOfClass("Highlight")
+
+	if show_highlight_npc_folder then
+		if hl then return end
+		local new = Instance.new("Highlight")
+		new.FillTransparency = .9
+		new.FillColor = Color3.new(1, 1, 1)
+		new.Parent = child_table.npc_folder.path
+	else
+		if not hl then return end
+		hl:Destroy()
+	end
+	
+end)
+
+plr_folder_path.Changed:Connect(function()
+
+end)
+
+npc_folder_path.Changed:Connect(function()
+	
 end)
 
 inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
