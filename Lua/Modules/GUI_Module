@@ -127,6 +127,15 @@ module.create_frame = function(parent, title: string, description: string, value
 		e2.Size = UDim2.new(.25,0,1,0)
 		e2.Parent = frame
 		return e1, e2
+	elseif typeof(value) == "string" and not e2 then
+		title_label.Size = UDim2.new(.25,0,.6,0)
+		if description_label then
+			description_label.Size = UDim2.new(.25,0,.4,0)
+		end
+		e1.Position = UDim2.new(.25,0,0,0)
+		e1.Size = UDim2.new(.75,0,1,0)
+		e1.Parent = frame
+		return e1
 	else
 		title_label.Size = UDim2.new(.75,0,.6,0)
 
@@ -136,15 +145,6 @@ module.create_frame = function(parent, title: string, description: string, value
 
 		e1.Position = UDim2.new(.75,0,0,0)
 		e1.Size = UDim2.new(.25,0,1,0)
-		e1.Parent = frame
-		return e1
-	elseif typeof(value) == "string" and not e2 then
-		title_label.Size = UDim2.new(.25,0,.6,0)
-		if description_label then
-			description_label.Size = UDim2.new(.25,0,.4,0)
-		end
-		e1.Position = UDim2.new(.25,0,0,0)
-		e1.Size = UDim2.new(.75,0,1,0)
 		e1.Parent = frame
 		return e1
 	end
