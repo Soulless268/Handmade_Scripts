@@ -8,7 +8,7 @@ local rs = game:GetService("RunService")
 local plr = players.LocalPlayer
 local char = plr.Character or plr.CharacterAdded:Wait()
 local hum = char:WaitForChild("Humanoid") :: Humanoid
-local hrp = char:WaitForChild("HumanoidRootPart", 10) or char:WaitForChild("Root", 10) or char:FindFirstChildOfClass("Part") :: Part
+local hrp = char:WaitForChild("HumanoidRootPart", 2) or char:WaitForChild("Root", 2) or char:FindFirstChildOfClass("Part") :: Part
 local plr_mouse = plr:GetMouse()
 local cam = workspace.CurrentCamera
 
@@ -19,6 +19,8 @@ local paths_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/
 local child_table = paths_module.child_table
 
 print("aimlock: successful run module")
+print("plr path is: ", child_table.plr_folder.path)
+print("npc path is: ", child_table.npc_folder.path)
 
 -----Settings-----
 local Minimized = false
@@ -633,7 +635,7 @@ show_highlight_plr_folder_button.Activated:Connect(function()
 	
 	local hl = child_table.plr_folder.path:FindFirstChildOfClass("Highlight")
 
-	if show_highlight_npc_folder then
+	if show_highlight_plr_folder then
 		if hl then return end
 		local new = Instance.new("Highlight")
 		new.FillTransparency = .9

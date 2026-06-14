@@ -127,7 +127,7 @@ module.create_frame = function(parent, title: string, description: string, value
 		e2.Size = UDim2.new(.25,0,1,0)
 		e2.Parent = frame
 		return e1, e2
-	elseif typeof(value) == "string" and not e2 then
+	elseif typeof(value) == "string" and value ~= "Click" and value ~= "Select" and not e2 then
 		title_label.Size = UDim2.new(.25,0,.6,0)
 		if description_label then
 			description_label.Size = UDim2.new(.25,0,.4,0)
