@@ -31,6 +31,7 @@ end
 everyClipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
 
 module.found_place = false
+module.place_register_plr_character = true
 module.child_table = {}
 module.paths = {
 	[130818724007978] = { ---TSB KJ
@@ -76,6 +77,7 @@ module.paths = {
 	[3701546109] = {
 		plr_folder = {path = safeFind(workspace, "Model"), found = true},
 		npc_folder = {path = safeFind(workspace, "Model"), found = true},
+		no_plr_character_register = true,
 	}
 }
 
@@ -113,6 +115,9 @@ for i,v in pairs(module.paths) do
 			module.found_place = true
 		else
 			warn("is it outdated?")
+		end
+		if v.no_plr_character_register then
+			module.place_register_plr_character = false
 		end
 	end
 end
