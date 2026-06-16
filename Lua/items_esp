@@ -1,15 +1,22 @@
 -- Goal: Universal System
 -- Date Updated -- 11:00 AM -- 9/3/2026 -- DD/MM/YYYY
 
+local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
-local tws = game:GetService("TweenService")
-local rs = game:GetService("RunService")
 local rp = game:GetService("ReplicatedStorage")
+local rs = game:GetService("RunService")
+local tws = game:GetService("TweenService")
 
 local plr = players.LocalPlayer
-local char = plr.Character or plr.CharacterAdded:Wait()
-local hrp = char:WaitForChild("HumanoidRootPart") :: Part
-local hum = char:WaitForChild("Humanoid") :: Humanoid
+local char = plr.Character
+local hrp
+local hum
+local cam = workspace.CurrentCamera
+
+if char then
+	hrp = char:WaitForChild("HumanoidRootPart") :: Part
+	hum = char:WaitForChild("Humanoid") :: Humanoid
+end
 
 -----Settings-----
 local Minimized = false
@@ -256,7 +263,7 @@ local runners_bil = {}
 local screen = Instance.new("ScreenGui")
 screen.Name = "NickESPUniversal"
 screen.ResetOnSpawn = false
-screen.Parent = plr.PlayerGui
+screen.Parent = coregui
 
 local sfx_click = Instance.new("Sound")
 sfx_click.SoundId = click_sounds
@@ -436,7 +443,7 @@ local function create_frame(parent, title: string, description: string, value: a
 end
 
 local function create_dex_instance(parent, obj: Instance, obj_index : number)
-	if obj:IsDescendantOf(dex_frame) then return end
+	if obj:IsDescendantOf(screen) then return end
 	buildCount += 1
 	print("create_dex_instance")
 	if buildCount % BUILD_BATCH == 0 then
@@ -549,7 +556,7 @@ local function reload_dex_instances()
 	list.VerticalAlignment = Enum.VerticalAlignment.Top
 	list.Parent = dex_frame
 
-	for i, obj in pairs(game:GetChildren()) do
+	for i, obj in pairs(workspace:GetChildren()) do
 		create_dex_instance(dex_frame, obj, i)
 	end
 
@@ -618,16 +625,18 @@ local function addbillboard(part: Instance, text)
 			p = part
 		end
 
+		if not plr.Character then return end
+
 		if aa:IsDescendantOf(workspace) and p.Position then
-			if (plr.Character.HumanoidRootPart.Position - p.Position).Magnitude then
-				stud.Text =  tostring(math.floor((plr.Character.HumanoidRootPart.Position - p.Position).Magnitude))
+			if (hrp.Position - p.Position).Magnitude then
+				stud.Text =  tostring(math.floor((hrp.Position - p.Position).Magnitude))
 			end
 		end
 
 		runners_bil[part] = plr.Character:FindFirstChildOfClass("Humanoid").Changed:Connect(function(prop)
 			if aa:IsDescendantOf(workspace) and p.Position then
-				if (plr.Character.HumanoidRootPart.Position - p.Position).Magnitude then
-					stud.Text =  tostring(math.floor((plr.Character.HumanoidRootPart.Position - p.Position).Magnitude))
+				if (hrp.Position - p.Position).Magnitude then
+					stud.Text =  tostring(math.floor((hrp.Position - p.Position).Magnitude))
 				end
 			else
 				runners_bil[part]:Disconnect()
@@ -1224,7 +1233,7 @@ end
 
 task.delay(.5, deep_find_whitelist, workspace)
 task.delay(.5, deep_find_blacklist, workspace)
-task.delay(.5, reload_dex_instances)
+-- task.delay(.5, reload_dex_instances)
 
 --Function:
 refresh_button.Activated:Connect(function()
@@ -1365,9 +1374,9 @@ hide_billboard_button.MouseButton1Down:Connect(function()
 end)
 
 tp_all_button.MouseButton1Down:Connect(function()
-
+	if not plr.Character then return end
 	local function bring(part)
-		part.CFrame = CFrame.new(game.Players.LocalPlayer.Character.HumanoidRootPart.Position)
+		part.CFrame = CFrame.new(plr.Character.HumanoidRootPart.Position)
 	end
 
 	for i, v in pairs(workspace:GetDescendants()) do
@@ -1442,14 +1451,15 @@ end)
 tp_select_item_button.Activated:Connect(function()
 	play_click_button()
 	local function bring(v: Instance)
+		if not plr.Character then return end
 		if v:IsA("Tool") then
 			if v:FindFirstChild("Handle") then
-				v.Handle.CFrame = CFrame.new(plr.Character.HumanoidRootPart.Position)
+				v.Handle.CFrame = CFrame.new(hrp.Position)
 			end
 		elseif v:IsA("Model") then
-			v:PivotTo(CFrame.new(plr.Character.HumanoidRootPart.Position))
+			v:PivotTo(CFrame.new(hrp.Position))
 		elseif v:IsA("BasePart") then
-			v.CFrame = CFrame.new(plr.Character.HumanoidRootPart.Position)
+			v.CFrame = CFrame.new(hrp.Position)
 		end
 	end
 
@@ -1463,6 +1473,7 @@ end)
 tp_to_select_item_button.Activated:Connect(function()
 	play_click_button()
 	local function tpto(v: Instance)
+		if not plr.Character then return end
 		local part 
 		if v:IsA("Tool") then
 			if v:FindFirstChild("Handle") then
@@ -1474,7 +1485,7 @@ tp_to_select_item_button.Activated:Connect(function()
 			part = v
 		end
 
-		plr.Character.HumanoidRootPart.CFrame = CFrame.new(part.Position)
+		hrp.CFrame = CFrame.new(part.Position)
 	end
 
 	task.spawn(function()
@@ -1485,24 +1496,24 @@ tp_to_select_item_button.Activated:Connect(function()
 end)
 
 spectate_items_button.MouseButton1Down:Connect(function()
-	local camera = workspace.CurrentCamera
+	if not plr.Character then return end
 	task.spawn(function()
 		if Selected_Item then
 			if Spectate == false then
 				if Selected_Item.ClassName == "Tool" then
-					camera.CameraSubject = Selected_Item.Handle
+					cam.CameraSubject = Selected_Item.Handle
 				elseif Selected_Item.ClassName == "Part" 
 					or Selected_Item.ClassName == "MeshPart" 
 					or Selected_Item.ClassName == "Model" then
-					camera.CameraSubject = Selected_Item
+					cam.CameraSubject = Selected_Item
 				end
 				Spectate = true
 			else
-				camera.CameraSubject = game.Players.LocalPlayer.Character.Humanoid
+				cam.CameraSubject = plr.Character.Humanoid
 				Spectate = false
 			end
 		else
-			camera.CameraSubject = game.Players.LocalPlayer.Character.Humanoid
+			cam.CameraSubject = plr.Character.Humanoid
 			Spectate = false
 		end
 	end)

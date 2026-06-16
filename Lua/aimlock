@@ -26,6 +26,7 @@ if paths_module.place_register_plr_character then
 	hrp = char:WaitForChild("HumanoidRootPart", 2) or char:WaitForChild("Root", 2) or char:FindFirstChildOfClass("Part") :: Part
 else
 	no_char_from_start = true
+	print("nocharacter from the start")
 end
 
 print("aimlock: successful run module")

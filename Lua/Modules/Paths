@@ -34,7 +34,7 @@ module.found_place = false
 module.place_register_plr_character = true
 module.child_table = {}
 module.paths = {
-	[130818724007978] = { ---TSB KJ
+	[130818724007978] = { ---TSB | KJ
 		plr_folder = {path = safeFind(workspace, "Live"), found = true},
 		npc_folder = {path = nil, found = false},
 	},
@@ -62,19 +62,19 @@ module.paths = {
 		plr_folder = {path = workspace, found = true},
 		npc_folder = {path = nil, found = false},
 	},
-	[11739766412] = { -- TDX in game
+	[11739766412] = { --TDX in game
 		plr_folder = {path = safeFind(workspace, "Game", "RaycastIgnore", "Characters"), found = true},
 		npc_folder = {path = safeFind(workspace, "Game", "Enemies"), found = true, step = 2},
 	},
-	[13438553315] = {
+	[13438553315] = { --Decaying Winter
 		plr_folder = {path = safeFind(workspace, "activePlayers"), found = true},
 		npc_folder = {path = safeFind(workspace, "activeHostiles"), found = true},
 	},
-	[11765763028] = {
+	[11765763028] = { --Reign Fall
 		plr_folder = {path = safeFind(workspace), found = true},
 		npc_folder = {path = safeFind(workspace, "Game", "Current", "Spawned", "NPCs", "enemies"), found = true},
 	},
-	[3701546109] = {
+	[3701546109] = { --Blackhawk Rescue Mission 5 | In Game
 		plr_folder = {path = safeFind(workspace, "Model"), found = true},
 		npc_folder = {path = safeFind(workspace, "Model"), found = true},
 		no_plr_character_register = true,
