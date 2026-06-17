@@ -3,7 +3,7 @@ local module = {}
 local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
 
-module.current_catagory = nil
+module.current_catagory
 
 local function set_catagory(frame)
 
@@ -11,6 +11,7 @@ local function set_catagory(frame)
 		if module.current_catagory then
 			module.current_catagory.Visible = true
 		end
+		return
 	end
 
 	if module.current_catagory and module.current_catagory ~= frame then
