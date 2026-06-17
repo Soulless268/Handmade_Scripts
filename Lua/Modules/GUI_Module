@@ -54,7 +54,9 @@ module.create_button_catagory = function(parent, name: string, frame)
 
 	set_catagory()
 
-	button.Activated:Connect(set_catagory, frame)
+	button.Activated:Connect(function()
+		set_catagory(frame)
+	end)
 
 	return button
 end
