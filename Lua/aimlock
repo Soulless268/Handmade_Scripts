@@ -34,7 +34,6 @@ print("aimlock: successful run module")
 -----Settings-----
 local Minimized = false
 local DESTROYED = false
-local current_catagory = nil
 local targetenemy
 local enable = false
 local targetpart = "Head" --Head, HumanoidRootPart, Torso
@@ -296,7 +295,7 @@ do
 
 		aimlock_frame = Instance.new("ScrollingFrame")
 		aimlock_frame.Active = true
-		aimlock_frame.Visible = true
+		aimlock_frame.Visible = false
 		aimlock_frame.BackgroundTransparency = .25
 		aimlock_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 		aimlock_frame.Position = UDim2.new(0.25, 0, 0.1, 0)
@@ -417,7 +416,7 @@ do
 			grid.VerticalAlignment = Enum.VerticalAlignment.Top
 			grid.Parent = catagories_frame
 
-			current_catagory = settings_frame
+			gui_module.current_catagory = settings_frame
 
 			gui_module.create_button_catagory(catagories_frame, "AimLock", aimlock_frame)
 

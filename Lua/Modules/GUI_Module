@@ -3,6 +3,26 @@ local module = {}
 local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
 
+module.current_catagory = nil
+
+local function set_catagory(frame)
+
+	if not frame then
+		if module.current_catagory then
+			module.current_catagory.Visible = true
+		end
+	end
+
+	if module.current_catagory and module.current_catagory ~= frame then
+		module.current_catagory.Visible = false
+		module.current_catagory = frame
+		module.current_catagory.Visible = true
+	else
+		module.current_catagory = frame
+		module.current_catagory.Visible = true
+	end
+end
+
 module.UiCorner = function(Parent, Ui)
 	local Corner = Instance.new("UICorner")
 	Corner.CornerRadius = Ui
@@ -31,16 +51,9 @@ module.create_button_catagory = function(parent, name: string, frame)
 	button.Parent = parent
 	module.UiStroke(button)
 
-	button.Activated:Connect(function()
-		if current_catagory and current_catagory ~= frame then
-			current_catagory.Visible = false
-			current_catagory = frame
-			current_catagory.Visible = true
-		else
-			current_catagory = frame
-			current_catagory.Visible = true
-		end
-	end)
+	set_catagory()
+
+	button.Activated:Connect(set_catagory, frame)
 
 
 	return button
