@@ -3,14 +3,14 @@ local module = {}
 local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
 
-local function UiCorner(Parent, Ui)
+module.UiCorner = function(Parent, Ui)
 	local Corner = Instance.new("UICorner")
 	Corner.CornerRadius = Ui
 	Corner.Parent = Parent
 	return Corner
 end
 
-local function UiStroke(Parent)
+module.UiStroke = function(Parent)
 	local Stroke = Instance.new("UIStroke")
 	Stroke.Color = Color3.fromRGB(255, 255, 255)
 	Stroke.Thickness = 1
@@ -29,7 +29,7 @@ module.create_button_catagory = function(parent, name: string, frame)
 	button.TextColor3 = Color3.fromRGB(255, 255, 255)
 	button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 	button.Parent = parent
-	UiStroke(button)
+	module.UiStroke(button)
 
 	button.Activated:Connect(function()
 		if current_catagory and current_catagory ~= frame then
@@ -50,7 +50,7 @@ module.create_frame = function(parent, title: string, description: string, value
 	local frame = Instance.new("Frame")
 	frame.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
 	frame.Parent = parent
-	UiStroke(frame)
+	module.UiStroke(frame)
 
 	local title_label = Instance.new("TextLabel")
 	title_label.Text = title
