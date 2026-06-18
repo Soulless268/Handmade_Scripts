@@ -2,6 +2,8 @@ local module = {}
 
 local players = game:GetService("Players")
 
+local plr = players.LocalPlayer
+
 function missing(t, f, fallback)
 	if type(f) == t then return f end
 	return fallback
@@ -20,14 +22,11 @@ function safeFind(root, pattern, ...)
 			local count = 0
 
 			if index == #paths then
-				print("last index, ", name)
-
 				if pattern then
 					if pattern.must_have then
 						for _,v in pairs(child) do
 							if table.find(pattern.must_have, v.Name) then
 								count += 1
-								print(v.Name)
 							end
 						end
 						if count == #child then
@@ -163,23 +162,57 @@ end
 
 --Find Player Folder then if found expect it to have npc inside
 if not module.child_table.plr_folder.found then
-	for _,c: Instance in pairs(workspace:GetDescendants()) do
-		if c:IsA("Humanoid") and players:GetPlayerFromCharacter(c.Parent) then
-			if module.child_table.plr_folder.found then break end
-			print("Found Player Folder in ", c.Parent.Parent.Name)
-			module.child_table.plr_folder.path = c.Parent.Parent
-			module.child_table.plr_folder.found = true
+	local current_path = nil
+	local highest = 0
+	local tbl = {}
+	for _,v in pairs(players:GetPlayers()) do
+		local c = v.Character
+		if not c then continue end
+		if not c.Parent then continue end
+		if not tbl[c.Parent] then tbl[c.Parent] = 0 end
+		tbl[c.Parent] += 1
+	end
+
+	for i,v in pairs(tbl) do
+		if v >= highest then
+			highest = v
+			current_path = i
 		end
 	end
+
+	if current_path then
+		module.child_table.plr_folder.path = current_path
+		module.child_table.plr_folder.found = true
+	end
+
 end
 
 if not module.child_table.npc_folder.found then
-	for _,c: Instance in pairs(workspace:GetDescendants()) do
-		if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
-			if module.child_table.npc_folder.found then break end
-			print("Found NPC Folder in ", c.Parent.Parent.Name)
-			module.child_table.npc_folder.path = c.Parent.Parent
+
+	if module.child_table.plr_folder.found then
+		local npc_count = 0
+		local plr_count = 0
+		for _,v in pairs(module.child_table.plr_folder.path:GetChildren()) do
+			if not players:GetPlayerFromCharacter(v) then
+				npc_count += 1
+			else
+				plr_count += 1
+			end
+		end
+
+		if npc_count >= 1 then
+			module.child_table.npc_folder.path = module.child_table.plr_folder.path
 			module.child_table.npc_folder.found = true
+		end
+	end
+
+	if not module.child_table.npc_folder.found then
+		for _,c: Instance in pairs(workspace:GetDescendants()) do
+			if c:IsA("Humanoid") and not players:GetPlayerFromCharacter(c.Parent) then
+				if module.child_table.npc_folder.found then break end
+				module.child_table.npc_folder.path = c.Parent.Parent
+				module.child_table.npc_folder.found = true
+			end
 		end
 	end
 end
