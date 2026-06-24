@@ -126,6 +126,12 @@ module.create_frame = function(parent, title: string, description: string, value
 	end
 
 	if value == nil and extra_value == nil then
+		title_label.Size = UDim2.new(1,0,.6,0)
+		if description_label then
+			description_label.Size = UDim2.new(1,0,.4,0)
+		else
+			title_label.Size = UDim2.new(1,0,1,0)
+		end
 		return title_label, description_label
 	end
 
