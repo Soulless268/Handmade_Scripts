@@ -125,6 +125,10 @@ module.create_frame = function(parent, title: string, description: string, value
 		return button
 	end
 
+	if not value then
+		return title_label, description_label
+	end
+
 	local e1 = make_value(value)
 	local e2 = make_value(extra_value)
 
