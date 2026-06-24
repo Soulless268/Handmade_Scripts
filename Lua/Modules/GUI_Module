@@ -125,7 +125,7 @@ module.create_frame = function(parent, title: string, description: string, value
 		return button
 	end
 
-	if not value then
+	if value == nil and extra_value == nil then
 		return title_label, description_label
 	end
 
