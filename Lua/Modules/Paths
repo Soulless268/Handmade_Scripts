@@ -56,58 +56,67 @@ module.place_register_plr_character = true
 module.child_table = {}
 module.paths = {
 	[130818724007978] = { ---TSB | KJ
-		plr_folder = {path = safeFind(workspace, nil, "Live"), found = true},
-		npc_folder = {path = nil, found = false},
+		plr_folder = {path = safeFind(workspace, nil, "Live"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[10449761463] = { ---TSB
-		plr_folder = {path = safeFind(workspace, nil, "Live"), found = true},
-		npc_folder = {path = nil, found = false},
+		plr_folder = {path = safeFind(workspace, nil, "Live"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[78041891124723] = { --Blood Debt
-		plr_folder = {path = safeFind(workspace, nil, "NPCSFolder"), found = true},
-		npc_folder = {path = nil, found = false},
+		plr_folder = {path = safeFind(workspace, nil, "NPCSFolder"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[155615604] = { --Prison Life
-		plr_folder = {path = workspace, found = true},
-		npc_folder = {path = nil, found = false},
+		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[18519254033] = { --Jump Showdown
-		plr_folder = {path = safeFind(workspace, nil, "Models"), found = true},
-		npc_folder = {path = safeFind(workspace, nil, "Models"), found = true},
+		plr_folder = {path = safeFind(workspace, nil, "Models"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = safeFind(workspace, nil, "Models"), detect_function = nil, childs = {}, found = true},
 	},
 	[14112387344] = { --Divine Duality Elemental
-		plr_folder = {path = safeFind(workspace, nil, "Entities"), found = true},
-		npc_folder = {path = nil, found = false},
+		plr_folder = {path = safeFind(workspace, nil, "Entities"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[9503261072] = {
-		plr_folder = {path = workspace, found = true},
-		npc_folder = {path = nil, found = false},
+		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[11739766412] = { --TDX in game
-		plr_folder = {path = safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), found = true},
-		npc_folder = {path = safeFind(workspace, nil, "Game", "Enemies"), found = true, step = 2},
+		plr_folder = {path = safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = safeFind(workspace, nil, "Game", "Enemies"), detect_function = nil, childs = {}, found = true, step = 2},
 	},
 	[13438553315] = { --Decaying Winter
-		plr_folder = {path = safeFind(workspace, nil, "activePlayers"), found = true},
-		npc_folder = {path = safeFind(workspace, nil, "activeHostiles"), found = true},
+		plr_folder = {path = safeFind(workspace, nil, "activePlayers"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = safeFind(workspace, nil, "activeHostiles"), detect_function = nil, childs = {}, found = true},
 	},
 	[11765763028] = { --Reign Fall
-		plr_folder = {path = safeFind(workspace), found = true},
-		npc_folder = {path = safeFind(workspace, nil, "Game", "Current", "Spawned", "NPCs", "enemies"), found = true},
+		plr_folder = {path = safeFind(workspace), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = safeFind(workspace, nil, "Game", "Current", "Spawned", "NPCs", "enemies"), detect_function = nil, childs = {}, found = true},
 	},
 	[3701546109] = { --Blackhawk Rescue Mission 5 | In Game
-		plr_folder = {path = safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), found = true},
-		npc_folder = {path = safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), found = true},
+		plr_folder = {path = safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
 	}
 }
+
+module.add_detect_function = function(path, added_function, removed_function)
+	local added = path.ChildAdded:Connect(added_function)
+	local removed = path.ChildRemoved:Connect(removed_function)
+	return added,removed
+end
 
 module.get_child_folder = function(name)
 	if not module.child_table[name] then return end
 	local folder = module.child_table[name].path :: Folder
 	local found = module.child_table[name].found :: boolean
 	local step = module.child_table[name].step or 1 :: number
+	local detect_function = module.child_table[name].detect_function
 	local children
 	if not folder then return folder:GetDescendants() end
+	if detect_function and next(module.child_table[name].childs) ~= nil then return module.child_table[name].childs end
+
 	if folder ~= workspace and found then
 		if step > 1 then
 			local all_child = {}
@@ -147,8 +156,8 @@ end
 
 if not module.found_place then
 	module.child_table = {
-		plr_folder = {path = workspace, found = false},
-		npc_folder = {path = workspace, found = false},
+		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = false},
+		npc_folder = {path = workspace, detect_function = nil, childs = {}, found = false},
 	}
 
 	warn("Place not found, Place ID is ", game.PlaceId)
