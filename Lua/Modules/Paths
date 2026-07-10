@@ -172,14 +172,7 @@ if not module.found_place then
 			if path[game.PlaceId] then
 				warn("Place not found, but found place id in file")
 				module.found_place = true
-				if path[game.PlaceId].plr_folder.path then
-					module.child_table.plr_folder.path = path[game.PlaceId].plr_folder.path
-					module.child_table.plr_folder.found = true
-				end
-				if path[game.PlaceId].npc_folder.path then
-					module.child_table.npc_folder.path = path[game.PlaceId].npc_folder.path
-					module.child_table.npc_folder.found = true
-				end
+				module.child_table = path[game.PlaceId]
 				print(module.child_table.plr_folder.path)
 				print(module.child_table.npc_folder.path)
 			end
