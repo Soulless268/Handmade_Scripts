@@ -51,6 +51,11 @@ module.safeFind = function(root, pattern, ...)
 end
 
 everyClipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
+waxwritefile, waxreadfile = writefile, readfile
+readfile = missing("function", waxreadfile) and function(file, safe)
+	if safe == true then return pcall(waxreadfile, file) end
+	return waxreadfile(file)
+end
 
 module.found_place = false
 module.place_register_plr_character = true
@@ -138,18 +143,17 @@ module.get_child_folder = function(name)
 	return children
 end
 
-for i,v in pairs(module.paths) do
-	if game.PlaceId ~= i then continue end
+if module.paths[game.PlaceId] then
 	print("place Id rigistered and found | ", i)
 
 	if not module.found_place then
-		if v.plr_folder or v.npc_folder then
-			module.child_table = v
+		if module.paths[game.PlaceId].plr_folder or module.paths[game.PlaceId].npc_folder then
+			module.child_table = module.paths[game.PlaceId]
 			module.found_place = true
 		else
 			warn("is it outdated?")
 		end
-		if v.no_plr_character_register then
+		if module.paths[game.PlaceId].no_plr_character_register then
 			module.place_register_plr_character = false
 		end
 	end
@@ -161,12 +165,35 @@ if not module.found_place then
 		npc_folder = {path = workspace, detect_function = nil, childs = {}, found = false},
 	}
 
-	warn("Place not found, Place ID is ", game.PlaceId)
-	if everyClipboard and plr.UserId == 90087614 then
-		everyClipboard(tostring(game.PlaceId))
-		warn("Clipboard", "Copied to clipboard")
-	else
-		warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
+	local readSuccess, out = readfile("NickHub/path.nh", true)
+	if readSuccess then
+		if out ~= nil and tostring(out):gsub("%s", "") ~= "" then
+			local path = loadfile("NickHub/path.nh")()
+			if path[game.PlaceId] then
+				warn("Place not found, but found place id in file")
+				module.found_place = true
+				if path[game.PlaceId].plr_folder.path then
+					module.child_table.plr_folder.path = path[game.PlaceId].plr_folder.path
+					module.child_table.plr_folder.found = true
+				end
+				if path[game.PlaceId].npc_folder.path then
+					module.child_table.npc_folder.path = path[game.PlaceId].npc_folder.path
+					module.child_table.npc_folder.found = true
+				end
+				print(module.child_table.plr_folder.path)
+				print(module.child_table.npc_folder.path)
+			end
+		end
+	end
+
+	if not module.found_place then
+		warn("Place not found, Place ID is ", game.PlaceId)
+		if everyClipboard and plr.UserId == 90087614 then
+			everyClipboard(tostring(game.PlaceId))
+			warn("Clipboard", "Copied to clipboard")
+		else
+			warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
+		end
 	end
 end
 
