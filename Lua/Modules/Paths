@@ -114,6 +114,7 @@ module.get_child_folder = function(name)
 	local found = module.child_table[name].found :: boolean
 	local step = module.child_table[name].step or 1 :: number
 	local detect_function = module.child_table[name].detect_function
+	print(print(folder))
 	local children
 	if not folder then return folder:GetDescendants() end
 	if detect_function and next(module.child_table[name].childs) ~= nil then return module.child_table[name].childs end
