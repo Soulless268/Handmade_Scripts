@@ -73,29 +73,17 @@ module.paths = {
 		plr_folder = {path = module.safeFind(workspace, nil, "NPCSFolder"), detect_function = nil, childs = {}, found = true},
 		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
-	[155615604] = { --Prison Life
-		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
-	},
 	[18519254033] = { --Jump Showdown
 		plr_folder = {path = module.safeFind(workspace, nil, "Models"), detect_function = nil, childs = {}, found = true},
 		npc_folder = {path = module.safeFind(workspace, nil, "Models"), detect_function = nil, childs = {}, found = true},
 	},
-	[14112387344] = { --Divine Duality Elemental
-		plr_folder = {path = module.safeFind(workspace, nil, "Entities"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
-	},
-	[9503261072] = {
+	[9503261072] = { --Tower Defense X
 		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = true},
 		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[11739766412] = { --TDX in game
 		plr_folder = {path = module.safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), detect_function = nil, childs = {}, found = true},
 		npc_folder = {path = module.safeFind(workspace, nil, "Game", "Enemies"), detect_function = nil, childs = {}, found = true, step = 2},
-	},
-	[13438553315] = { --Decaying Winter
-		plr_folder = {path = module.safeFind(workspace, nil, "activePlayers"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = module.safeFind(workspace, nil, "activeHostiles"), detect_function = nil, childs = {}, found = true},
 	},
 	[11765763028] = { --Reign Fall
 		plr_folder = {path = module.safeFind(workspace), detect_function = nil, childs = {}, found = true},
