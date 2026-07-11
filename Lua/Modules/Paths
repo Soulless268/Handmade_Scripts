@@ -61,33 +61,13 @@ module.found_place = false
 module.place_register_plr_character = true
 module.child_table = {}
 module.paths = {
-	[130818724007978] = { ---TSB | KJ
-		plr_folder = {path = module.safeFind(workspace, nil, "Live"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
-	},
-	[10449761463] = { ---TSB
-		plr_folder = {path = module.safeFind(workspace, nil, "Live"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
-	},
-	[78041891124723] = { --Blood Debt
-		plr_folder = {path = module.safeFind(workspace, nil, "NPCSFolder"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
-	},
-	[18519254033] = { --Jump Showdown
-		plr_folder = {path = module.safeFind(workspace, nil, "Models"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = module.safeFind(workspace, nil, "Models"), detect_function = nil, childs = {}, found = true},
-	},
-	[9503261072] = { --Tower Defense X
+	[9503261072] = { --TDX
 		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = true},
 		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[11739766412] = { --TDX in game
 		plr_folder = {path = module.safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), detect_function = nil, childs = {}, found = true},
 		npc_folder = {path = module.safeFind(workspace, nil, "Game", "Enemies"), detect_function = nil, childs = {}, found = true, step = 2},
-	},
-	[11765763028] = { --Reign Fall
-		plr_folder = {path = module.safeFind(workspace), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = module.safeFind(workspace, nil, "Game", "Current", "Spawned", "NPCs", "enemies"), detect_function = nil, childs = {}, found = true},
 	},
 	[3701546109] = { --Blackhawk Rescue Mission 5 | In Game
 		plr_folder = {path = module.safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
