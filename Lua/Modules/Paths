@@ -2,6 +2,7 @@ local module = {}
 
 local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
+local https = game:GetService("HttpService")
 
 local plr = players.LocalPlayer
 
@@ -52,27 +53,21 @@ end
 
 everyClipboard = missing("function", setclipboard or toclipboard or set_clipboard or (Clipboard and Clipboard.set))
 waxwritefile, waxreadfile = writefile, readfile
+writefile = missing("function", waxwritefile) and function(file, data, safe)
+	if safe == true then return pcall(waxwritefile, file, data) end
+	waxwritefile(file, data)
+end
 readfile = missing("function", waxreadfile) and function(file, safe)
 	if safe == true then return pcall(waxreadfile, file) end
 	return waxreadfile(file)
 end
 
+local paths
 module.found_place = false
 module.place_register_plr_character = true
-module.child_table = {}
-module.paths = {
-	[9503261072] = { --TDX
-		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
-	},
-	[11739766412] = { --TDX in game
-		plr_folder = {path = module.safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = module.safeFind(workspace, nil, "Game", "Enemies"), detect_function = nil, childs = {}, found = true, step = 2},
-	},
-	[3701546109] = { --Blackhawk Rescue Mission 5 | In Game
-		plr_folder = {path = module.safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = module.safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
-	}
+module.child_table = {
+	plr_folder = {path = workspace, detect_function = nil, childs = {}, found = false},
+	npc_folder = {path = workspace, detect_function = nil, childs = {}, found = false},
 }
 
 module.add_detect_function = function(path, added_function, removed_function)
@@ -111,50 +106,100 @@ module.get_child_folder = function(name)
 	return children
 end
 
-if module.paths[game.PlaceId] then
-	print("place Id rigistered and found | ", i)
-
-	if not module.found_place then
-		if module.paths[game.PlaceId].plr_folder or module.paths[game.PlaceId].npc_folder then
-			module.child_table = module.paths[game.PlaceId]
-			module.found_place = true
-		else
-			warn("is it outdated?")
-		end
-		if module.paths[game.PlaceId].no_plr_character_register then
-			module.place_register_plr_character = false
-		end
-	end
-end
-
-if not module.found_place then
-	module.child_table = {
-		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = false},
-		npc_folder = {path = workspace, detect_function = nil, childs = {}, found = false},
-	}
-
+local function read_paths_file()
 	local readSuccess, out = readfile("NickHub/path.nh", true)
 	if readSuccess then
 		if out ~= nil and tostring(out):gsub("%s", "") ~= "" then
-			local path = loadfile("NickHub/path.nh")()
-			if path[game.PlaceId] then
-				warn("Place not found, but found place id in file")
+			paths = loadfile("NickHub/path.nh")()
+			if paths[game.PlaceId] then
+				warn("found place Id in file")
 				module.found_place = true
-				module.child_table = path[game.PlaceId]
-				print(module.child_table.plr_folder.path)
-				print(module.child_table.npc_folder.path)
+				module.child_table = paths[game.PlaceId]
+
+				if paths[game.PlaceId].no_plr_character_register then
+					module.place_register_plr_character = false
+				end
+
+				if not module.child_table.plr_folder.path then
+					warn("Player Path are outdated")
+				end
+
+				if not module.child_table.npc_folder.path then
+					warn("NPC Path are outdated")
+				end
 			end
+		end
+	else
+		local string = [[
+local safeFind = function(root, pattern, ...)
+	local paths = {...}
+	local current = root
+	for index, name in ipairs(paths) do
+		if not current then return end
+
+		for _,v in pairs(current:GetChildren()) do
+			if v.Name ~= name then continue end
+			local temp_current = v
+			local child = temp_current:GetChildren()
+			local count = 0
+
+			if index == #paths then
+				if pattern then
+					if pattern.must_have then
+						for _,v in pairs(child) do
+							if table.find(pattern.must_have, v.Name) then
+								count += 1
+							end
+						end
+						if count == #child then
+							current = temp_current
+							break
+						end
+					end
+				else
+					current = temp_current
+					break
+				end
+
+			else
+				current = temp_current
+			end
+
 		end
 	end
 
-	if not module.found_place then
-		warn("Place not found, Place ID is ", game.PlaceId)
-		if everyClipboard and plr.UserId == 90087614 then
-			everyClipboard(tostring(game.PlaceId))
-			warn("Clipboard", "Copied to clipboard")
-		else
-			warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
-		end
+	return current
+end
+
+return {
+	[9503261072] = { --TDX
+		plr_folder = {path = workspace, detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
+	},
+	[11739766412] = { --TDX in game
+		plr_folder = {path = module.safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = module.safeFind(workspace, nil, "Game", "Enemies"), detect_function = nil, childs = {}, found = true, step = 2},
+	},
+	[3701546109] = { --Blackhawk Rescue Mission 5 | In Game
+		plr_folder = {path = module.safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = module.safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
+	},
+}]]
+		writefile("NickHub/path.nh", string, true)
+		task.wait(1)
+		read_paths_file()
+	end	
+end
+
+read_paths_file()
+
+if not module.found_place then
+	warn("Place not found, Place ID is ", game.PlaceId)
+	if everyClipboard and plr.UserId == 90087614 then
+		everyClipboard(tostring(game.PlaceId))
+		warn("Clipboard", "Copied to clipboard")
+	else
+		warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
 	end
 end
 
