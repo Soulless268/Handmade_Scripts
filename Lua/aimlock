@@ -576,7 +576,6 @@ players.PlayerRemoving:Connect(function(player)
 		partbutton:Destroy()
 	end
 end)
-
 -----Startup-----
 
 -----Function-----
@@ -629,8 +628,6 @@ radiustext.Changed:Connect(function()
 	end
 end)
 
-	end
-end)
 
 selectpartbutton.Activated:Connect(function()
 	selectpartframe.Visible = not selectpartframe.Visible
