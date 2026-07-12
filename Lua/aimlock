@@ -1,9 +1,11 @@
--- Date Updated -- 9:30 PM -- 15/3/2026 -- DD/MM/YYYY
+-- Date Updated -- 2:30 PM -- 12/7/2026 -- DD/MM/YYYY
+-- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/aimlock"),true))()
 
 local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
 local rp = game:GetService("ReplicatedStorage")
 local rs = game:GetService("RunService")
+local uis = game:GetService("UserInputService")
 
 local no_char_from_start = false
 
@@ -45,21 +47,73 @@ local show_highlight_npc_folder = false
 local predict_movement = true
 local detect_through_wall = false
 local lock_after_dead = false
+local lock_nearest_enemy = false
 local detectionRadius = 50
 local totalTime_prediction = 10
 local dt_prediction = 0.1
 local ignore_players = {}
 local frame_store = {}
+local highlights_store = {}
 local background_image_id = "rbxassetid://86093393173023"
 local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
 -----Settings-----
 
-local mainrun
-local lockon_runner
-local mouse_run
-local movement_run
-local inputrun
+local runners = {
+	runner_main = nil :: RBXScriptConnection,
+	runner_lockon = nil :: RBXScriptConnection,
+	runner_mouse = nil :: RBXScriptConnection,
+	runner_input = nil :: RBXScriptConnection,
+	runner_highlight_npc = nil :: RBXScriptConnection,
+	runner_highlight_plr = nil :: RBXScriptConnection,
+}
+
+-----SetUp GUI-----
+local screen = Instance.new("ScreenGui")
+screen.Name = "NickAimLock"
+screen.ResetOnSpawn = false
+screen.Parent = coregui or plr.PlayerGui
+
+local highlight_folder = Instance.new("Folder")
+highlight_folder.Name = "HighlightsFolder"
+highlight_folder.Parent = screen
+
+local extrascreen
+
+local main_frame : Frame
+local catagories_frame : Frame
+local ignore_players_frame : Frame
+local aimlock_frame : Frame
+local settings_frame : Frame
+
+local show_button : TextButton
+local close_button : TextButton
+local minimize_button : TextButton
+
+local selectpartframe
+local ignore_players_scrollframe
+
+local add_decent_button : TextButton
+local remove_decent_button : TextButton
+
+local selectpartbutton
+local lockafterdeadbutton
+local lock_nearest_enemy_button
+local detectthroughwallbutton
+local colorstatus
+local radiustext
+local aimlock_smoothness_text
+local distancetext
+local predictmovementbutton
+local npclockbutton
+local plrlockbutton
+local teamlockbutton
+local show_highlight_plr_folder_button
+local show_highlight_npc_folder_button
+local plr_folder_path
+local npc_folder_path
+
+local radius
 
 --PreLoad Local Universals Function:
 local function UiCorner(Parent, Ui)
@@ -132,47 +186,83 @@ local function drawTrajectory(part)
 end
 
 local function finding_(mousePos, children)
-	for i,v in pairs(children) do
-		if v:IsA("Model") and v:FindFirstChild("Humanoid") then
-			if v == plr.Character then continue end
+	local target_in_sight = {}
+	for i,enemy in pairs(children) do
+		if enemy == char then continue end
+		if enemy:FindFirstChild(targetpart) then
+			local enemypos = enemy[targetpart].CFrame.Position
 
-			local enemy = v
-			if enemy:FindFirstChild("HumanoidRootPart") then
-				local enemypos = enemy[targetpart].CFrame.Position
-				local playerpos = plr.Character.PrimaryPart.CFrame.Position
-
-				local screenPos, onScreen = workspace.CurrentCamera:WorldToViewportPoint(enemypos)
-
-				if onScreen then
-					local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-					if dist <= detectionRadius then
-
-						if not detect_through_wall then
-							local ray_param = RaycastParams.new()
-							ray_param.FilterType = Enum.RaycastFilterType.Exclude
-							ray_param.FilterDescendantsInstances = {plr.Character, enemy}
-							local raycast = workspace:Raycast(playerpos, enemypos, ray_param)
-							if raycast then continue end
-						end
-
-						local enemyplr = game.Players:GetPlayerFromCharacter(enemy)
-						if enemyplr and lockplayer then
-							if not lockteam and enemyplr.Team == plr.Team then continue end
-							if table.find(ignore_players, enemyplr.Name) then continue end
-							targetenemy = enemy
-							return
-						elseif not enemyplr and locknpc then
-							targetenemy = enemy
-							return
-						end
-					end
+			local screenPos, onScreen = cam:WorldToViewportPoint(enemypos)
+			if onScreen then
+				local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
+				if dist <= detectionRadius then
+					table.insert(target_in_sight, enemy)
+				elseif targetenemy == enemy and dist >= detectionRadius then
+					targetenemy = nil
 				end
+			elseif targetenemy == enemy and not onScreen then
+				targetenemy = nil
 			end
 		end
 	end
+
+	if next(target_in_sight) == nil then return end
+
+	local function get_enemy(enemy)
+		local enemyPos = enemy[targetpart].CFrame.Position
+		local playerPos = if char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+
+		if not detect_through_wall then
+			local ray_param = RaycastParams.new()
+			ray_param.FilterType = Enum.RaycastFilterType.Exclude
+			ray_param.FilterDescendantsInstances = {char, enemy}
+			local raycast = workspace:Raycast(playerPos, enemyPos, ray_param)
+			if raycast then warn("target have wall in bewtween | ", raycast.Instance) return end
+		end
+
+		local enemyplr = players:GetPlayerFromCharacter(enemy)
+		if enemyplr and lockplayer then
+			if not lockteam and enemyplr.Team == plr.Team then return end
+			if table.find(ignore_players, enemyplr.Name) then return end
+			targetenemy = enemy
+			return targetenemy
+		elseif not enemyplr and locknpc then
+			targetenemy = enemy
+			return targetenemy
+		end
+	end
+
+	if lock_nearest_enemy then
+		local nearest = nil
+		local nearestDistance = math.huge
+
+		for _,enemy in pairs(target_in_sight) do
+			local enemyPos = enemy[targetpart].CFrame.Position
+			local playerPos = if char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+			local distance = (enemyPos - playerPos).Magnitude
+
+			if distance < nearestDistance then
+				nearestDistance = distance
+				nearest = enemy
+			end
+		end
+
+		if nearest then
+			get_enemy(nearest)
+		end
+
+	else
+		for _,enemy in pairs(target_in_sight) do
+			if get_enemy(enemy) then break end
+		end		
+	end
+
+	target_in_sight = {}
+
 end
 
 function lockon()
+	if not targetenemy then return end
 	local enemypos = targetenemy[targetpart].CFrame.Position
 	local hum = targetenemy.Humanoid :: Humanoid
 	local pos = cam.CFrame.Position
@@ -187,8 +277,7 @@ function lockon()
 end
 
 function AimLock()
-	local mousePos = game.UserInputService:GetMouseLocation()
-	local lastmagnitude = math.huge --just for the start
+	local mousePos = uis:GetMouseLocation()
 
 	local c_plr = paths_module.get_child_folder("plr_folder")
 	local c_npc = paths_module.get_child_folder("npc_folder")
@@ -208,48 +297,6 @@ local function getMousePosition()
 	local x, y = mouse.X, mouse.Y
 	return x, y
 end
-
------SetUp GUI-----
-local screen = Instance.new("ScreenGui")
-screen.Name = "NickAimLock"
-screen.ResetOnSpawn = false
-screen.Parent = coregui or plr.PlayerGui
-
-local extrascreen
-
-local main_frame : Frame
-local catagories_frame : Frame
-local ignore_players_frame : Frame
-local aimlock_frame : Frame
-local settings_frame : Frame
-
-local show_button : TextButton
-local close_button : TextButton
-local minimize_button : TextButton
-
-local selectpartframe
-local ignore_players_scrollframe
-
-local refresh_button : TextButton
-local add_decent_button : TextButton
-local remove_decent_button : TextButton
-
-local selectpartbutton
-local lockafterdeadbutton
-local detectthroughwallbutton
-local colorstatus
-local radiustext
-local distancetext
-local predictmovementbutton
-local npclockbutton
-local plrlockbutton
-local teamlockbutton
-local show_highlight_plr_folder_button
-local show_highlight_npc_folder_button
-local plr_folder_path
-local npc_folder_path
-
-local radius
 
 do
 	main_frame = Instance.new("Frame")
@@ -317,8 +364,6 @@ do
 
 			colorstatus = gui_module.create_frame(aimlock_frame, "Status", nil, enable)
 
-			refresh_button = gui_module.create_frame(aimlock_frame, "Refresh", "Refresh", "Click")
-
 		end
 
 		ignore_players_frame = Instance.new("ScrollingFrame")
@@ -383,15 +428,15 @@ do
 
 			detectthroughwallbutton = gui_module.create_frame(settings_frame, "Detect Through Wall", "e", detect_through_wall)
 
-			if child_table.plr_folder.path == child_table.npc_folder.path then
-				show_highlight_npc_folder_button = gui_module.create_frame(settings_frame, "Show Highlight", nil, false)
-			else
-				show_highlight_plr_folder_button, show_highlight_npc_folder_button = gui_module.create_frame(settings_frame, "Show Highlight", "Player Folder | NPC Folder", false, false)
-			end
+			lock_nearest_enemy_button = gui_module.create_frame(settings_frame, "Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", lock_nearest_enemy)
+
+			show_highlight_npc_folder_button, show_highlight_plr_folder_button = gui_module.create_frame(settings_frame, "Show Highlight", "Player Folder | NPC Folder", false, false)
 
 			plr_folder_path = gui_module.create_frame(settings_frame, "Player Path", "Path", child_table.plr_folder.path:GetFullName())
+			plr_folder_path.ClearTextOnFocus = false
 
 			npc_folder_path = gui_module.create_frame(settings_frame, "NPC Path", "Path", child_table.npc_folder.path:GetFullName())
+			npc_folder_path.ClearTextOnFocus = false
 
 		end
 
@@ -450,18 +495,22 @@ do
 	extrascreen = Instance.new("ScreenGui")
 	extrascreen.Name = "NickExtra_Aim"
 	extrascreen.ResetOnSpawn = false
-	extrascreen.Parent = plr.PlayerGui
+	extrascreen.Parent = coregui
 
 	do
 		radius = Instance.new("Frame")
 		radius.Size = UDim2.new(0, detectionRadius*2, 0, detectionRadius*2)
-		radius.BackgroundTransparency = .75
+		radius.BackgroundTransparency = .9
 		radius.Parent = extrascreen
 
 		do
 			local e = Instance.new("UICorner")
 			e.Parent = radius
 			e.CornerRadius = UDim.new(1,0)
+
+			local stroke = gui_module.UiStroke(radius)
+			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
+			stroke.LineJoinMode = Enum.LineJoinMode.Round
 		end
 	end
 
@@ -489,6 +538,7 @@ for i,v in pairs(bodypart) do
 		selectpartbutton.Text = targetpart
 	end)
 end
+selectpartbutton.Text = targetpart
 
 local function create_plr_b(p)
 	local partbutton = Instance.new("TextButton")
@@ -507,13 +557,6 @@ local function create_plr_b(p)
 	end)
 end
 
-local function remove_plr_b(p)
-	local partbutton = ignore_players_frame:FindFirstChild(p.Name)
-	if partbutton then
-		partbutton:Destroy()
-	end
-end
-
 for _,p in pairs(players:GetPlayers()) do
 	if table.find(ignore_players, p.Name) then return end
 	create_plr_b(p)
@@ -528,15 +571,26 @@ players.PlayerRemoving:Connect(function(player)
 	if table.find(ignore_players, player.Name) then
 		table.remove(ignore_players, table.find(ignore_players, player.Name))
 	end
-	remove_plr_b(player)
+	local partbutton = ignore_players_frame:FindFirstChild(player.Name)
+	if partbutton then
+		partbutton:Destroy()
+	end
 end)
 
 -----Startup-----
 
 -----Function-----
 close_button.Activated:Connect(function()
+
+	for i,v in pairs(runners) do
+		if v then
+			v:Disconnect()
+		end
+	end
+
 	enable = false
 	DESTROYED = true
+
 	screen:Destroy()
 	extrascreen:Destroy()
 end)
@@ -550,6 +604,7 @@ minimize_button.MouseButton1Click:Connect(function()
 		if v == main_frame then continue end
 		if v == show_button then continue end
 		if frame_store[v] then continue end
+		if not v:IsA("Frame") then continue end
 		frame_store[v] = v.Visible
 		v.Visible = false
 	end
@@ -574,38 +629,6 @@ radiustext.Changed:Connect(function()
 	end
 end)
 
-mainrun = rs.RenderStepped:Connect(function()
-	if DESTROYED then
-		mainrun:Disconnect()
-		mouse_run:Disconnect()
-		lockon_runner:Disconnect()
-		return
-	end
-
-	if not targetenemy 
-		or not (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path))
-		or (targetenemy.Humanoid:GetState() == Enum.HumanoidStateType.Dead and not lock_after_dead) then
-		targetenemy = nil
-	end
-end)
-
-mouse_run = plr_mouse.Move:Connect(function()
-	task.spawn(function()
-		local x,y = getMousePosition()
-		radius.Position = UDim2.new(0, x, 0, y) - UDim2.new(
-			radius.Size.X.Scale / 2, radius.Size.X.Offset / 2,
-			radius.Size.Y.Scale / 2, radius.Size.Y.Offset / 2
-		)
-	end)
-
-	if enable and targetenemy == nil then
-		AimLock()
-	end
-end)
-
-lockon_runner = rs.RenderStepped:Connect(function()
-	if targetenemy and (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path)) then
-		lockon()
 	end
 end)
 
@@ -643,56 +666,203 @@ detectthroughwallbutton.Activated:Connect(function()
 	detectthroughwallbutton.BackgroundColor3 = if detect_through_wall then truecolor else falsecolor
 end)
 
-if show_highlight_plr_folder_button then
-	show_highlight_plr_folder_button.Activated:Connect(function()
-		show_highlight_plr_folder = not show_highlight_plr_folder
-		show_highlight_plr_folder_button.BackgroundColor3 = if show_highlight_plr_folder then truecolor else falsecolor
+lock_nearest_enemy_button.Activated:Connect(function()
+	lock_nearest_enemy = not lock_nearest_enemy
+	lock_nearest_enemy_button.BackgroundColor3 = if lock_nearest_enemy then truecolor else falsecolor
+end)
 
-		local hl = child_table.plr_folder.path:FindFirstChildOfClass("Highlight")
-
-		if show_highlight_plr_folder then
-			if hl then return end
-			local new = Instance.new("Highlight")
-			new.FillTransparency = .9
-			new.FillColor = Color3.new(1, 1, 1)
-			new.Parent = child_table.plr_folder.path
-		else
-			if not hl then return end
-			hl:Destroy()
-		end
+local function creat_highlight(adornee, parent)
+	local new = Instance.new("Highlight")
+	new.Name = "HighlightYOOitAIMHIGHLIGHT"
+	new.FillTransparency = .9
+	new.FillColor = Color3.new(1, 1, 1)
+	new.Adornee = adornee
+	new.Parent = parent or highlight_folder
+	highlights_store[adornee] = new
+	
+	adornee.Destroying:Once(function()
+		new:Destroy()
+		highlights_store[adornee] = nil
 	end)
+	
 end
+
+local function clear_nil_highlight()
+	for i,v in pairs(highlights_store) do
+		if not v.Adornee then v:Destroy() else continue end
+	end
+end
+
+show_highlight_plr_folder_button.Activated:Connect(function()
+	print("highlight in player folder")
+	show_highlight_plr_folder = not show_highlight_plr_folder
+	show_highlight_plr_folder_button.BackgroundColor3 = if show_highlight_plr_folder then truecolor else falsecolor
+
+	local hl = if highlights_store[child_table.npc_folder.path] then highlights_store[child_table.plr_folder.path] else nil
+	clear_nil_highlight()
+
+	if show_highlight_plr_folder then
+		if child_table.plr_folder.path:IsA("Folder") then
+			for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
+				creat_highlight(v)
+			end
+			runners.runner_highlight_plr = child_table.plr_folder.path.ChildAdded:Connect(function(child)
+				if not highlights_store[child] then creat_highlight(child) end
+			end)
+		else
+			if hl then return end
+			creat_highlight(child_table.plr_folder.path)
+		end
+	else
+		if hl then
+			hl:Destroy()
+		else
+			for _,c in pairs(paths_module.get_child_folder("plr_folder")) do
+				if highlights_store[c] then highlights_store[c]:Destroy() end
+			end
+			if runners.runner_highlight_plr then
+				runners.runner_highlight_plr:Disconnect()
+			end
+		end
+	end
+end)
 
 show_highlight_npc_folder_button.Activated:Connect(function()
 	show_highlight_npc_folder = not show_highlight_npc_folder
 	show_highlight_npc_folder_button.BackgroundColor3 = if show_highlight_npc_folder then truecolor else falsecolor
 
-	local hl = child_table.npc_folder.path:FindFirstChildOfClass("Highlight")
+	local hl = if highlights_store[child_table.npc_folder.path] then highlights_store[child_table.npc_folder.path] else nil
+	clear_nil_highlight()
 
 	if show_highlight_npc_folder then
-		if hl then return end
-		local new = Instance.new("Highlight")
-		new.FillTransparency = .9
-		new.FillColor = Color3.new(1, 1, 1)
-		new.Parent = child_table.npc_folder.path
+		if child_table.npc_folder.path:IsA("Folder") then
+			runners.runner_highlight_npc = child_table.npc_folder.path.ChildAdded:Connect(function(child)
+				if not highlights_store[child] then creat_highlight(child) end
+			end)
+		else
+			if hl then return end
+			creat_highlight(child_table.npc_folder.path)
+		end
 	else
-		if not hl then return end
-		hl:Destroy()
+		if hl then
+			hl:Destroy()
+		else
+			for _,c in pairs(paths_module.get_child_folder("npc_folder")) do
+				if highlights_store[c] then highlights_store[c]:Destroy() end
+			end
+			if runners.runner_highlight_npc then
+				runners.runner_highlight_npc:Disconnect()
+			end
+		end
 	end
 
 end)
 
-plr_folder_path.Changed:Connect(function()
+local function make_detect_function()
+	if child_table.plr_folder.detect_function then
+		child_table.plr_folder.detect_function:Disconnect()
+		child_table.plr_folder.childs = {}
+		child_table.plr_folder.childs = paths_module.get_child_folder("plr_folder")
+	end
+	if child_table.npc_folder.detect_function then
+		child_table.npc_folder.detect_function:Disconnect()
+		child_table.npc_folder.childs = {}
+		child_table.npc_folder.childs = paths_module.get_child_folder("npc_folder")
+	end
+
+	child_table.plr_folder.detect_function = paths_module.add_detect_function(child_table.plr_folder.path,
+		function(child)
+			if child:IsA("Model") and child:FindFirstChild("Humanoid") and players:GetPlayerFromCharacter(child) then
+				table.insert(child_table.plr_folder.childs, child)
+			end
+		end,
+		function(child)
+			local i = table.find(child_table.plr_folder.childs, child)
+			if i then
+				table.remove(child_table.plr_folder.childs, i)
+			end
+		end)
+
+	child_table.npc_folder.detect_function = paths_module.add_detect_function(child_table.npc_folder.path,
+		function(child)
+			if child:IsA("Model") and child:FindFirstChild("Humanoid") and not players:GetPlayerFromCharacter(child) then
+				table.insert(child_table.npc_folder.childs, child)
+			end
+		end,
+		function(child)
+			local i = table.find(child_table.npc_folder.childs, child)
+			if i then
+				table.remove(child_table.npc_folder.childs, i)
+			end
+		end)
+end
+
+plr_folder_path.FocusLost:Connect(function(enterPressed)
+	local text_parts = string.split(plr_folder_path.Text, ".")
+	if text_parts[1] == "Workspace" or text_parts[1] == "workspace" then text_parts[1] = workspace end
+	local manual_path = paths_module.safeFind(text_parts[1], nil, text_parts[2], text_parts[3], text_parts[4], text_parts[5], text_parts[6])
+	if manual_path then
+		-- paths_module.child_table.plr_folder.path = manual_path
+		child_table.plr_folder.path = manual_path
+		warn("found path for Players: ", child_table.plr_folder.path:GetFullName())
+		make_detect_function()
+	end
+	plr_folder_path.Text = child_table.plr_folder.path:GetFullName()
+end)
+
+npc_folder_path.FocusLost:Connect(function(enterPressed)
+	local text_parts = string.split(npc_folder_path.Text, ".")
+	if text_parts[1] == "Workspace" or text_parts[1] == "workspace" then text_parts[1] = workspace end
+	local manual_path = paths_module.safeFind(text_parts[1], nil, text_parts[2], text_parts[3], text_parts[4], text_parts[5], text_parts[6])
+	if manual_path then
+		-- paths_module.child_table.npc_folder.path = manual_path
+		child_table.npc_folder.path = manual_path
+		warn("found path for NPC: ", child_table.npc_folder.path:GetFullName())
+		make_detect_function()
+	end
+	npc_folder_path.Text = child_table.npc_folder.path:GetFullName()
+end)
+
+child_table.plr_folder.childs = paths_module.get_child_folder("plr_folder")
+child_table.npc_folder.childs = paths_module.get_child_folder("npc_folder")
+
+make_detect_function()
+
+runners.runner_main = rs.RenderStepped:Connect(function()
+	if not targetenemy 
+		or not (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path))
+		or (targetenemy.Humanoid:GetState() == Enum.HumanoidStateType.Dead and not lock_after_dead) then
+		targetenemy = nil
+	end
+
+	if not enable then return end
+
+	if targetenemy == nil then
+		AimLock()
+	elseif targetenemy and lock_nearest_enemy then
+		AimLock()
+	end
 
 end)
 
-npc_folder_path.Changed:Connect(function()
-
+runners.runner_mouse = plr_mouse.Move:Connect(function()
+	task.spawn(function()
+		local x,y = getMousePosition()
+		radius.Position = UDim2.new(0, x, 0, y) - UDim2.new(
+			radius.Size.X.Scale / 2, radius.Size.X.Offset / 2,
+			radius.Size.Y.Scale / 2, radius.Size.Y.Offset / 2
+		)
+	end)
 end)
 
-inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
+runners.runner_lockon = rs.RenderStepped:Connect(function()
+	if targetenemy and (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path)) then
+		lockon()
+	end
+end)
+
+runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
-	if DESTROYED then inputrun:Disconnect() return end
 
 	if input.UserInputType == Enum.UserInputType.MouseButton3 then
 		enable = not enable
@@ -702,7 +872,7 @@ inputrun = game.UserInputService.InputBegan:Connect(function(input, gpe)
 		else
 			colorstatus.BackgroundColor3 = falsecolor
 		end
-		radius.BackgroundColor3 = colorstatus.BackgroundColor3
+		radius.BackgroundColor3 = if enable then Color3.fromRGB(255, 255, 0) else colorstatus.BackgroundColor3
 	end
 end)
 
