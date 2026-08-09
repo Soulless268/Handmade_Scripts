@@ -177,12 +177,12 @@ return {
 		npc_folder = {path = nil, detect_function = nil, childs = {}, found = false},
 	},
 	[11739766412] = { --TDX in game
-		plr_folder = {path = module.safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = module.safeFind(workspace, nil, "Game", "Enemies"), detect_function = nil, childs = {}, found = true, step = 2},
+		plr_folder = {path = safeFind(workspace, nil, "Game", "RaycastIgnore", "Characters"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = safeFind(workspace, nil, "Game", "Enemies"), detect_function = nil, childs = {}, found = true, step = 2},
 	},
 	[3701546109] = { --Blackhawk Rescue Mission 5 | In Game
-		plr_folder = {path = module.safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
-		npc_folder = {path = module.safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
+		plr_folder = {path = safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
+		npc_folder = {path = safeFind(workspace, {must_have = {"Male", "Female"}}, "Model"), detect_function = nil, childs = {}, found = true},
 	},
 }]]
 		writefile("NickHub/path.nh", string, true)
