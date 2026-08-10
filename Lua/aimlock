@@ -44,16 +44,20 @@ local lockplayer = true -- Lock player or not
 local lockteam = true
 local show_highlight_plr_folder = false
 local show_highlight_npc_folder = false
-local predict_movement = true
-local detect_through_wall = false
+local predict_movement = false
+local detect_through_wall = true
 local lock_after_dead = false
 local lock_nearest_enemy = false
+local view_direction_line = false
+local viewline_distance = 2000
 local detectionRadius = 50
+local aimlock_smoothness = 1
 local totalTime_prediction = 10
 local dt_prediction = 0.1
 local ignore_players = {}
 local frame_store = {}
-local highlights_store = {}
+local highlights_store = {} -- setmetatable({}, {__mode = "k"}) -- weak keys
+local directionlines_store = {} -- setmetatable({}, {__mode = "k"}) -- weak keys
 local background_image_id = "rbxassetid://86093393173023"
 local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
@@ -66,6 +70,7 @@ local runners = {
 	runner_input = nil :: RBXScriptConnection,
 	runner_highlight_npc = nil :: RBXScriptConnection,
 	runner_highlight_plr = nil :: RBXScriptConnection,
+	runner_direction_line = nil :: RBXScriptConnection,
 }
 
 -----SetUp GUI-----
@@ -77,6 +82,15 @@ screen.Parent = coregui or plr.PlayerGui
 local highlight_folder = Instance.new("Folder")
 highlight_folder.Name = "HighlightsFolder"
 highlight_folder.Parent = screen
+
+local directionline_folder
+if not cam:FindFirstChild("DirectionLineFolder") then
+	directionline_folder = Instance.new("Folder")
+	directionline_folder.Name = "DirectionLineFolder"
+	directionline_folder.Parent = cam
+else
+	directionline_folder = cam:FindFirstChild("DirectionLineFolder")
+end
 
 local extrascreen
 
@@ -95,23 +109,6 @@ local ignore_players_scrollframe
 
 local add_decent_button : TextButton
 local remove_decent_button : TextButton
-
-local selectpartbutton
-local lockafterdeadbutton
-local lock_nearest_enemy_button
-local detectthroughwallbutton
-local colorstatus
-local radiustext
-local aimlock_smoothness_text
-local distancetext
-local predictmovementbutton
-local npclockbutton
-local plrlockbutton
-local teamlockbutton
-local show_highlight_plr_folder_button
-local show_highlight_npc_folder_button
-local plr_folder_path
-local npc_folder_path
 
 local radius
 
@@ -266,13 +263,25 @@ function lockon()
 	local enemypos = targetenemy[targetpart].CFrame.Position
 	local hum = targetenemy.Humanoid :: Humanoid
 	local pos = cam.CFrame.Position
+	local target = CFrame.new(pos, enemypos)
+
+	local function pan_cam(pos)
+		if aimlock_smoothness <= 0 then
+			cam.CFrame = target
+		else
+			local alpha = 1 / (aimlock_smoothness * 2 + 1) --alternative
+			--local alpha = math.exp(-aimlock_smoothness) --alternative
+			-- local alpha = 1 / (aimlock_smoothness + 1)  --main
+			cam.CFrame = cam.CFrame:Lerp(target, alpha)
+		end
+	end
 
 	if predict_movement and hum then
 		local vel = targetenemy[targetpart].AssemblyLinearVelocity
 		local predict_pos = enemypos + vel * dt_prediction
-		cam.CFrame = CFrame.new(pos, predict_pos)
+		pan_cam(CFrame.new(pos, predict_pos))
 	else
-		cam.CFrame = CFrame.new(pos, enemypos)
+		pan_cam(target)
 	end
 end
 
@@ -364,6 +373,24 @@ do
 
 			colorstatus = gui_module.create_frame(aimlock_frame, "Status", nil, enable)
 
+			npclockbutton = gui_module.create_frame(aimlock_frame, "Lock Npc", "Lock Npc", locknpc)
+
+			plrlockbutton = gui_module.create_frame(aimlock_frame, "Lock Player", "Lock Player", lockplayer)
+
+			teamlockbutton = gui_module.create_frame(aimlock_frame, "Lock Team", "Lock Team", lockteam)
+
+			selectpartbutton = gui_module.create_frame(aimlock_frame, "Select Part", "Select Part", "Click")
+
+			predictmovementbutton = gui_module.create_frame(aimlock_frame, "Predict Movement", "Predict Movement", predict_movement)
+
+			detectthroughwallbutton = gui_module.create_frame(aimlock_frame, "Detect Through Wall", "e", detect_through_wall)
+
+			ShowViewDirectionLineButton = gui_module.create_frame(aimlock_frame, "Show the line in Player Head", "can know what player is looking at right now", view_direction_line)
+
+			lock_nearest_enemy_button = gui_module.create_frame(aimlock_frame, "Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", lock_nearest_enemy)
+
+			show_highlight_npc_folder_button, show_highlight_plr_folder_button = gui_module.create_frame(aimlock_frame, "Show Highlight", "Player Folder | NPC Folder", false, false)
+
 		end
 
 		ignore_players_frame = Instance.new("ScrollingFrame")
@@ -412,25 +439,13 @@ do
 			grid.VerticalAlignment = Enum.VerticalAlignment.Top
 			grid.Parent = settings_frame
 
-			npclockbutton = gui_module.create_frame(settings_frame, "Lock Npc", "Lock Npc", locknpc)
-
-			plrlockbutton = gui_module.create_frame(settings_frame, "Lock Player", "Lock Player", lockplayer)
-
-			teamlockbutton = gui_module.create_frame(settings_frame, "Lock Team", "Lock Team", lockteam)
-
-			selectpartbutton = gui_module.create_frame(settings_frame, "Select Part", "Select Part", "Click")
-
-			predictmovementbutton = gui_module.create_frame(settings_frame, "Predict Movement", "Predict Movement", predict_movement)
-
 			radiustext = gui_module.create_frame(settings_frame, "Radius", "Radius", detectionRadius)
 
+			aimlock_smoothness_text = gui_module.create_frame(settings_frame, "Smoothness", "Smoothness of the aim 0-5", aimlock_smoothness)
+			
+			ViewLineDistanceText = gui_module.create_frame(settings_frame, "View line Distance", "the Distance of View line", viewline_distance)
+
 			lockafterdeadbutton = gui_module.create_frame(settings_frame, "Lock after dead", "Lock after dead", lock_after_dead)
-
-			detectthroughwallbutton = gui_module.create_frame(settings_frame, "Detect Through Wall", "e", detect_through_wall)
-
-			lock_nearest_enemy_button = gui_module.create_frame(settings_frame, "Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", lock_nearest_enemy)
-
-			show_highlight_npc_folder_button, show_highlight_plr_folder_button = gui_module.create_frame(settings_frame, "Show Highlight", "Player Folder | NPC Folder", false, false)
 
 			plr_folder_path = gui_module.create_frame(settings_frame, "Player Path", "Path", child_table.plr_folder.path:GetFullName())
 			plr_folder_path.ClearTextOnFocus = false
@@ -461,7 +476,7 @@ do
 			grid.VerticalAlignment = Enum.VerticalAlignment.Top
 			grid.Parent = catagories_frame
 
-			gui_module.current_catagory = settings_frame
+			gui_module.current_catagory = aimlock_frame
 
 			gui_module.create_button_catagory(catagories_frame, "AimLock", aimlock_frame)
 
@@ -591,6 +606,7 @@ close_button.Activated:Connect(function()
 	DESTROYED = true
 
 	screen:Destroy()
+	directionline_folder:Destroy()
 	extrascreen:Destroy()
 end)
 
@@ -621,13 +637,25 @@ show_button.Activated:Connect(function()
 	frame_store = {}
 end)
 
-radiustext.Changed:Connect(function()
+radiustext.FocusLost:Connect(function()
 	if typeof(tonumber(radiustext.Text)) == "number" then
 		detectionRadius = tonumber(radiustext.Text)
+		radius.Visible = if detectionRadius <= 0 then false else true
 		radius.Size = UDim2.new(0, detectionRadius*2, 0, detectionRadius*2)
 	end
 end)
 
+aimlock_smoothness_text.FocusLost:Connect(function()
+	if typeof(tonumber(aimlock_smoothness_text.Text)) == "number" then
+		aimlock_smoothness = tonumber(aimlock_smoothness_text.Text)
+	end
+end)
+
+ViewLineDistanceText.FocusLost:Connect(function()
+	if typeof(tonumber(ViewLineDistanceText.Text)) == "number" then
+		viewline_distance = tonumber(ViewLineDistanceText.Text)
+	end
+end)
 
 selectpartbutton.Activated:Connect(function()
 	selectpartframe.Visible = not selectpartframe.Visible
@@ -666,6 +694,109 @@ end)
 lock_nearest_enemy_button.Activated:Connect(function()
 	lock_nearest_enemy = not lock_nearest_enemy
 	lock_nearest_enemy_button.BackgroundColor3 = if lock_nearest_enemy then truecolor else falsecolor
+end)
+
+ShowViewDirectionLineButton.Activated:Connect(function()
+	view_direction_line = not view_direction_line
+	ShowViewDirectionLineButton.BackgroundColor3 = if view_direction_line then truecolor else falsecolor
+
+	local function remove_dir_line(adornee)
+		if not directionlines_store[adornee] then return end
+
+		if directionlines_store[adornee].connection then
+			directionlines_store[adornee].connection:Disconnect()
+		end
+		
+		if directionlines_store[adornee].beam then
+			directionlines_store[adornee].beam.Attachment0:Destroy()
+			directionlines_store[adornee].beam.Attachment1:Destroy()
+		end
+
+		if directionlines_store[adornee].endPart then
+			directionlines_store[adornee].endPart:Destroy()
+		end
+
+		directionlines_store[adornee] = nil
+	end
+
+	local function add_dir_line(adornee, parent)
+		if directionlines_store[adornee] then return end
+		local head = adornee:WaitForChild("Head")
+
+		local startAttachment = Instance.new("Attachment")
+		startAttachment.Name = "YOOITDIRECTIONLINE!!!START"
+		startAttachment.Position = Vector3.new(0, 0, -0.5)
+		startAttachment.Parent = parent or head
+
+		local endPart = Instance.new("Part")
+		endPart.Name = "YOOITDIRECTIONLINE!!!PART"
+		endPart.Size = Vector3.new(0.1, 0.1, 0.1)
+		endPart.Transparency = 1
+		endPart.CanCollide = false
+		endPart.CanQuery = false
+		endPart.CanTouch = false
+		endPart.Anchored = true
+		endPart.Parent = directionline_folder
+
+		local endAttachment = Instance.new("Attachment")
+		endAttachment.Parent = endPart
+
+		local beam = Instance.new("Beam")
+		beam.Name = "YOOITDIRECTIONLINE!!!"
+		beam.Attachment0 = startAttachment
+		beam.Attachment1 = endAttachment
+		beam.Width0 = 0.08
+		beam.Width1 = 0.08
+		beam.FaceCamera = true
+		beam.LightEmission = 1
+		beam.Parent = endPart
+
+		local connection
+		connection = rs.Heartbeat:Connect(function()
+			if not adornee or not head.Parent or not startAttachment.Parent or DESTROYED then
+
+				if connection then
+					connection:Disconnect()
+				end
+				
+				if beam then
+					beam.Attachment0:Destroy()
+					beam.Attachment1:Destroy()
+				end
+
+				if endPart then
+					endPart:Destroy()
+				end
+
+				directionlines_store[adornee] = nil
+				return
+			end
+
+			local direction = head.CFrame.LookVector
+			endPart.Position = head.Position + direction * viewline_distance
+		end)
+
+		directionlines_store[adornee] = {endpart = endPart, beam = beam, connection = connection}
+	end
+
+	if view_direction_line then
+		for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
+			if not players:GetPlayerFromCharacter(v) then continue end
+			add_dir_line(v)
+		end
+		runners.runner_direction_line = child_table.plr_folder.path.ChildAdded:Connect(function(child)
+			if not players:GetPlayerFromCharacter(child) then return end
+			if not directionlines_store[child] then add_dir_line(child) end
+		end)
+	else
+		for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
+			remove_dir_line(v)
+		end
+		if runners.runner_highlight_plr then
+			runners.runner_highlight_plr:Disconnect()
+		end
+	end
+
 end)
 
 local function creat_highlight(adornee, parent)
