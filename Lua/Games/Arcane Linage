@@ -1,0 +1,243 @@
+-- Date Updated -- 2:10 AM -- 29/8/2026 -- DD/MM/YYYY
+
+local coregui = game:GetService("CoreGui")
+local players = game:GetService("Players")
+local tws = game:GetService("TweenService")
+local rs = game:GetService("RunService")
+local rp = game:GetService("ReplicatedStorage")
+local vim = game:GetService("VirtualInputManager")
+local uis = game:GetService("UserInputService")
+local gs = game:GetService("GuiService")
+
+local plr = players.LocalPlayer
+local plr_mouse = plr:GetMouse()
+
+function CallModule(path)
+    local suc, mod = pcall(function()
+        local copy = path:Clone()
+        task.spawn(function()
+            repeat task.wait() until screen
+            copy.Parent = screen
+        end)
+        return require(copy)
+    end)
+    if suc then return mod end
+end
+
+-----Settings-----
+local Minimized = false
+local DESTROYED = false
+local enable = true
+local dodgeAssignments = {}
+local truecolor = Color3.fromRGB(170, 170, 0)
+local falsecolor = Color3.fromRGB(163, 162, 165)
+-----Settings-----
+
+local runners = {}
+
+local function onClose()
+    enable = false
+    DESTROYED = true
+
+    for i,v in pairs(runners) do
+		if v then
+			v:Disconnect()
+		end
+	end
+
+    for i,v in pairs(dodgeAssignments) do
+		if v then
+			v:Disconnect()
+		end
+    end
+	
+	screen:Destroy()
+end
+
+local function press_key(keycode)
+	task.wait()
+	vim:SendKeyEvent(true, Enum.KeyCode[keycode], false, game)
+	task.wait(.01)
+	vim:SendKeyEvent(false, Enum.KeyCode[keycode], false, game)
+	task.wait(.05)
+end
+
+local function press_enter()
+	task.wait()
+	vim:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+	task.wait(.01)
+	vim:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+	task.wait(.05)
+end
+
+local function autoClickImage(obj, show_hb)
+    local center = obj.AbsolutePosition + obj.AbsoluteSize / 2
+    local inset = gs:GetGuiInset()
+
+    local mouseX = center.X + inset.X
+    local mouseY = center.Y + inset.Y
+
+    if show_hb then
+        local hitbox = Instance.new("Frame")
+        hitbox.Size = UDim2.fromOffset(10, 10)
+        hitbox.AnchorPoint = Vector2.new(.5,.5)
+        hitbox.Position = UDim2.fromOffset(center.X, center.Y)
+        hitbox.Parent = screen
+        game.Debris:AddItem(hitbox, 5)
+    end
+
+    vim:SendMouseButtonEvent(mouseX, mouseY, 0, true, game, 1)
+    task.wait()
+    vim:SendMouseButtonEvent(mouseX, mouseY, 0, false, game, 1)
+end
+
+local function isMouseNearImage(obj, tolerance)
+	local mousePos = uis:GetMouseLocation()
+    tolerance = tolerance or 30
+
+	local imagePos = obj.AbsolutePosition
+	local imageSize = obj.AbsoluteSize
+
+	-- Expand the image's area by the tolerance
+	local left = imagePos.X - tolerance
+	local right = imagePos.X + imageSize.X + tolerance
+	local top = imagePos.Y - tolerance
+	local bottom = imagePos.Y + imageSize.Y + tolerance
+
+	return mousePos.X >= left
+		and mousePos.X <= right
+		and mousePos.Y >= top
+		and mousePos.Y <= bottom
+end
+
+local function isMouseInImage(obj, maxDistance)
+	local mousePos = uis:GetMouseLocation()
+    maxDistance = maxDistance or (if obj.AbsoluteSize.X == obj.AbsoluteSize.Y then obj.AbsoluteSize.X else nil) or 50
+
+	local center = obj.AbsolutePosition + obj.AbsoluteSize / 2
+
+	local distance = (Vector2.new(mousePos.X, mousePos.Y) - center).Magnitude
+
+	return distance <= maxDistance
+end
+
+-----SetUp GUI-----
+screen = Instance.new("ScreenGui")
+screen.Name = "NickMainFGS"
+screen.ResetOnSpawn = false
+screen.Parent = coregui
+
+do
+	main_frame = Instance.new("Frame")
+	main_frame.Draggable = true
+	main_frame.Active = true
+	main_frame.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+	main_frame.AnchorPoint = Vector2.new(.75, 0)
+	main_frame.Position = UDim2.new(1, 0, 0, 0)
+	main_frame.Size = UDim2.new(.25,0,0.2,0)
+	main_frame.Parent = screen
+
+	do
+		local grid = Instance.new("UIGridLayout")
+		grid.Parent = main_frame
+		grid.CellPadding = UDim2.new(0,0,0,0)
+		grid.CellSize = UDim2.new(.5,0,.2,0)
+		grid.FillDirection = "Horizontal"
+		grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		grid.VerticalAlignment = Enum.VerticalAlignment.Bottom
+
+		colorstatus = Instance.new("TextButton")
+		colorstatus.Text = " "
+		colorstatus.BackgroundColor3 = enable and truecolor or falsecolor
+		colorstatus.Parent = main_frame
+
+		destroybutton = Instance.new("TextButton")
+		destroybutton.Text = "Destroy"
+		destroybutton.Parent = main_frame
+	end
+
+end
+
+local pressing = false
+runners.runner_dodgeQte = plr.PlayerGui:WaitForChild("Combat").DodgeQTE:GetPropertyChangedSignal("Visible"):Connect(function()
+    if not enable then return end
+    if not plr.PlayerGui.Combat.DodgeQTE.Visible then return end
+
+    local slider = plr.PlayerGui.Combat.DodgeQTE.Inset.Indicator
+    local dodge_frame = plr.PlayerGui.Combat.DodgeQTE.Inset.Dodge
+
+    local center1 = slider.AbsolutePosition.X
+    local center2 = dodge_frame.AbsolutePosition.X
+
+    local runner
+    runner = rs.RenderStepped:Connect(function()
+		if not enable then if runner then runner:Disconnect() end
+		if not plr.PlayerGui.Combat.DodgeQTE.Visible then if runner then runner:Disconnect() end end
+        center1 = slider.AbsolutePosition.X
+        center2 = dodge_frame.AbsolutePosition.X
+
+        if math.abs(center1 - center2) <= 4 then
+            press_key("Space")
+        end
+    end)
+end)
+
+runners.runner_daggerQte = plr.PlayerGui:WaitForChild("Combat").DaggerQTE.ChildAdded:Connect(function(child)
+	if not enable then return end
+	if child.Name ~= "ActiveRing" then return end
+
+	local function rot_transform(rot)
+        return rot % 360
+    end
+
+	local function tranform_step(rot)
+		return 360 - rot
+	end
+
+    local needle = plr.PlayerGui.Combat.DaggerQTE.Indicator
+	local rings = child
+
+	local runner
+	local done = {}
+	task.wait()
+	runner = rs.RenderStepped:Connect(function()
+		for _,v in pairs(rings:GetChildren()) do
+			if v.Name == "AttackTemplate" then continue end
+			if done[v] then continue end
+
+			local peak_rot = tranform_step(v.Rotation)
+			local lowest = peak_rot + -10
+			local highest = peak_rot + 10
+			
+			if (rot_transform(rings.Rotation) >= lowest and rot_transform(rings.Rotation) <= highest) then
+				done[v] = true
+				v.Visible = false
+				press_key("Space")
+			end
+		end
+		if not plr.PlayerGui.Combat.DaggerQTE.Visible or not enable then
+			if runner then runner:Disconnect(); runner = nil end
+			done = nil
+		end
+	end)
+end)
+
+colorstatus.Activated:Connect(function()
+    enable = not enable
+    colorstatus.BackgroundColor3 = if enable then truecolor else falsecolor
+end)
+
+destroybutton.MouseButton1Down:Connect(function()
+    onClose()
+end)
+
+runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+
+	if input.UserInputType == Enum.UserInputType.MouseButton3 then
+		enable = not enable
+        colorstatus.BackgroundColor3 = if enable then truecolor else falsecolor
+	elseif input.KeyCode == Enum.KeyCode.KeypadPlus then
+		screen.Enabled = not screen.Enabled
+	end
+end)
