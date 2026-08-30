@@ -195,12 +195,6 @@ read_paths_file()
 
 if not module.found_place then
 	warn("Place not found, Place ID is ", game.PlaceId)
-	if everyClipboard and plr.UserId == 90087614 then
-		everyClipboard(tostring(game.PlaceId))
-		warn("Clipboard", "Copied to clipboard")
-	else
-		warn("Clipboard", "Your exploit doesn't have the ability to use the clipboard")
-	end
 end
 
 --Find Player Folder then if found expect it to have npc inside
