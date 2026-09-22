@@ -1,0 +1,175 @@
+local coregui = game:GetService("CoreGui")
+local players = game:GetService("Players")
+local tws = game:GetService("TweenService")
+local rs = game:GetService("RunService")
+local rp = game:GetService("ReplicatedStorage")
+local vim = game:GetService("VirtualInputManager")
+local uis = game:GetService("UserInputService")
+local gs = game:GetService("GuiService")
+
+local plr = game.Players.LocalPlayer
+
+local ProximityPrompts_Screen = plr.PlayerGui:FindFirstChild("PromptsHolder")
+
+if not ProximityPrompts_Screen then
+	ProximityPrompts_Screen = Instance.new("ScreenGui")
+	ProximityPrompts_Screen.Name = "PromptsHolder"
+	ProximityPrompts_Screen.ResetOnSpawn = false
+	ProximityPrompts_Screen.IgnoreGuiInset = true
+	ProximityPrompts_Screen.Parent = plr.PlayerGui
+end
+
+-----Settings-----
+local Minimized = false
+local DESTROYED = false
+local enable = true
+local auto_fish = false
+local hold_proximity_time = 0
+local hrp_cframe = plr.Character.HumanoidRootPart.CFrame
+local truecolor = Color3.fromRGB(170, 170, 0)
+local falsecolor = Color3.fromRGB(163, 162, 165)
+-----Settings-----
+
+local runners = {}
+
+local function press_key(keycode, hold)
+	task.wait()
+	vim:SendKeyEvent(true, Enum.KeyCode[keycode], false, game)
+	task.wait(hold or .01)
+	vim:SendKeyEvent(false, Enum.KeyCode[keycode], false, game)
+	task.wait(.05)
+end
+
+-----SetUp GUI-----
+local screen = Instance.new("ScreenGui")
+screen.Name = "NickMainST"
+screen.ResetOnSpawn = false
+screen.Parent = coregui
+
+do
+	main_frame = Instance.new("Frame")
+	main_frame.Draggable = true
+	main_frame.Active = true
+	main_frame.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
+	main_frame.AnchorPoint = Vector2.new(0.5, 0.5)
+	main_frame.Position = UDim2.new(0.25, 0, 0.15, 0)
+	main_frame.Size = UDim2.new(.25,0,0.2,0)
+	main_frame.Parent = screen
+
+	do
+		local grid = Instance.new("UIGridLayout")
+		grid.Parent = main_frame
+		grid.CellPadding = UDim2.new(0,0,0,0)
+		grid.CellSize = UDim2.new(.5,0,.2,0)
+		grid.FillDirection = "Horizontal"
+		grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		grid.VerticalAlignment = Enum.VerticalAlignment.Bottom
+
+		auto_fish_button = Instance.new("TextButton")
+		auto_fish_button.Text = "Auto Fishing"
+		auto_fish_button.TextScaled = true
+		auto_fish_button.BackgroundColor3 = auto_fish and truecolor or falsecolor
+		auto_fish_button.Parent = main_frame
+
+		destroybutton = Instance.new("TextButton")
+		destroybutton.Text = "Destroy"
+		destroybutton.TextScaled = true
+		destroybutton.Parent = main_frame
+	end
+end
+
+task.spawn(function()
+	while enable do
+		task.wait()
+		if not auto_fish then continue end
+
+        local our_fishing_rod, tip = nil, nil
+
+        do
+            local m = plr.Character:FindFirstChild("Tool_Accessories"):FindFirstChildOfClass("Model")
+            if not m then continue end
+            for _,v in m:GetDescendants() do
+                if v.Name == "Tip" then
+                    our_fishing_rod = m
+                    tip = v
+                    break
+                end
+            end
+        end
+
+        if not our_fishing_rod then continue end
+
+        local found = false
+            for _,v in workspace.Debree:GetChildren() do
+                if not v:FindFirstChild("FishingLine") then continue end
+                if v:FindFirstChild("FishingLine").Attachment0 ~= tip then continue end
+                found = true
+            end
+
+        local fishing_frame = plr.PlayerGui.Misc:FindFirstChild("CanvasGroup")
+
+		if fishing_frame then
+			local bar = plr.PlayerGui.Misc.CanvasGroup.Frame.Bar
+			local tracker = plr.PlayerGui.Misc.CanvasGroup.Frame.tracker
+			repeat
+				local center1 = bar.AbsolutePosition + bar.AbsoluteSize / 2
+				local center2 = tracker.AbsolutePosition + tracker.AbsoluteSize / 2
+
+                print(center1.Y-center2.Y)
+
+
+				if center1.Y-center2.Y < 0 then
+					mouse1release()
+				else
+					mouse1press()
+				end
+
+			until not fishing_frame:IsDescendantOf(plr.PlayerGui)
+            task.wait(1)
+            press_key("T")
+		elseif not found then 
+            task.wait(1)
+			mouse1press()
+            task.wait(.1)
+            mouse1release()
+            task.wait(.1)
+		end
+
+	end
+end)
+
+auto_fish_button.Activated:Connect(function()
+    auto_fish = not auto_fish
+    auto_fish_button.BackgroundColor3 = if auto_fish then truecolor else falsecolor
+end)
+
+destroybutton.MouseButton1Down:Connect(function()
+	enable = false
+    DESTROYED = true
+
+    for i,v in pairs(runners) do
+		if v then
+			v:Disconnect()
+		end
+	end
+	
+	screen:Destroy()
+end)
+
+runners.proximity = ProximityPrompts_Screen.ChildAdded:Connect(function(child)
+    if child:IsDescendantOf(ProximityPrompts_Screen) then
+        if child:IsA("BillboardGui") then
+            if child.Adornee:FindFirstChildOfClass("ProximityPrompt").HoldDuration ~= hold_proximity_time then
+                child.Adornee:FindFirstChildOfClass("ProximityPrompt").HoldDuration = hold_proximity_time
+            end
+        end
+    end
+end)
+
+runners.runner_input = uis.InputBegan:Connect(function(input, GPE)
+	if GPE then return end
+
+	if input.KeyCode == Enum.KeyCode.KeypadPlus then
+		screen.Enabled = not screen.Enabled
+	end
+end)
