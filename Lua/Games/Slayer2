@@ -1,3 +1,6 @@
+-- Date Updated -- 11:00 PM -- 26/8/2026 -- DD/MM/YYYY
+-- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Slayer2"),true))()
+
 local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
 local tws = game:GetService("TweenService")
@@ -94,11 +97,11 @@ task.spawn(function()
                 end
             end
         end
-        
-        print(our_fishing_rod:GetFullName())
-        print(tip:GetFullName())
 
         if not our_fishing_rod then continue end
+
+        print(our_fishing_rod:GetFullName())
+        print(tip:GetFullName())
 
         task.wait(.5)
 
