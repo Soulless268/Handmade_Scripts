@@ -91,7 +91,8 @@ task.spawn(function()
         for _,child in plr.Character:FindFirstChild("Tool_Accessories"):GetChildren() do
             for _,v in child:GetDescendants() do
                 if v.Name == "Tip" then
-                    our_fishing_rod = m
+                    print(v)
+                    our_fishing_rod = child
                     tip = v
                     break
                 end
@@ -100,24 +101,17 @@ task.spawn(function()
 
         if not our_fishing_rod then continue end
 
-        print(our_fishing_rod:GetFullName())
-        print(tip:GetFullName())
-
         task.wait(.5)
 
         local found = false
         for _,v in workspace.Debree:GetChildren() do
             if not v:FindFirstChild("FishingLine") then continue end
             if v:FindFirstChild("FishingLine").Attachment0 == tip then
-                print(v:GetFullName())
                 found = true
             else
                 continue
             end
-            
         end
-
-        print(found)
 
         local fishing_frame = plr.PlayerGui.Misc:FindFirstChild("CanvasGroup")
 
@@ -127,9 +121,6 @@ task.spawn(function()
 			repeat
 				local center1 = bar.AbsolutePosition + bar.AbsoluteSize / 2
 				local center2 = tracker.AbsolutePosition + tracker.AbsoluteSize / 2
-
-                print(center1.Y-center2.Y)
-
 
 				if center1.Y-center2.Y < 0 then
 					mouse1release()
