@@ -86,13 +86,13 @@ task.spawn(function()
         local our_fishing_rod, tip = nil, nil
 
         do
-            local m = plr.Character:FindFirstChild("Tool_Accessories"):FindFirstChildOfClass("Model")
-            if not m then continue end
-            for _,v in m:GetDescendants() do
-                if v.Name == "Tip" then
-                    our_fishing_rod = m
-                    tip = v
-                    break
+            for _,child in plr.Character:FindFirstChild("Tool_Accessories"):GetChildren() do
+                for _,v in child:GetDescendants() do
+                    if v.Name == "Tip" then
+                        our_fishing_rod = m
+                        tip = v
+                        break
+                    end
                 end
             end
         end
