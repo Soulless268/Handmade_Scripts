@@ -94,6 +94,9 @@ task.spawn(function()
                 end
             end
         end
+        
+        print(our_fishing_rod:GetFullName())
+        print(tip:GetFullName())
 
         if not our_fishing_rod then continue end
 
@@ -103,6 +106,7 @@ task.spawn(function()
         for _,v in workspace.Debree:GetChildren() do
             if not v:FindFirstChild("FishingLine") then continue end
             if v:FindFirstChild("FishingLine").Attachment0 == tip then
+                print(v:GetFullName())
                 found = true
             else
                 continue
