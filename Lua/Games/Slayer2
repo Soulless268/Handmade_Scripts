@@ -85,19 +85,19 @@ task.spawn(function()
 
         local our_fishing_rod, tip = nil, nil
 
-        do
-            for _,child in plr.Character:FindFirstChild("Tool_Accessories"):GetChildren() do
-                for _,v in child:GetDescendants() do
-                    if v.Name == "Tip" then
-                        our_fishing_rod = m
-                        tip = v
-                        break
-                    end
+        for _,child in plr.Character:FindFirstChild("Tool_Accessories"):GetChildren() do
+            for _,v in child:GetDescendants() do
+                if v.Name == "Tip" then
+                    our_fishing_rod = m
+                    tip = v
+                    break
                 end
             end
         end
 
         if not our_fishing_rod then continue end
+
+        task.wait(.5)
 
         local found = false
             for _,v in workspace.Debree:GetChildren() do
