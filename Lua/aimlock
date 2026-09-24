@@ -1,4 +1,4 @@
--- Date Updated -- 3:20 PM -- 12/7/2026 -- DD/MM/YYYY
+-- Date Updated -- 8:25 PM -- 24/9/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/aimlock"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -16,6 +16,8 @@ local hum
 local hrp
 local plr_mouse = plr:GetMouse()
 local cam = workspace.CurrentCamera
+
+local file_path = "NickHub/AIMLOCK.nh"
 
 print("aimlock: trying to run module")
 
@@ -36,6 +38,7 @@ print("aimlock: successful run module")
 
 -----Settings-----
 configs = {
+	activeKeybind = "MouseButton3";
 	aimSmoothness = 0;
 	lockNPC = true;
 	lockPlayer = true;
@@ -44,9 +47,13 @@ configs = {
 	detectionRadius = 50;
 	viewlineDistance = 2000;
 	predictMovement = false;
+
+	highlightType = "ESP";
+	showEspStats = true;
 }
 defaults = HttpService:JSONEncode(configs)
 
+local Logs = true
 local Minimized = false
 local DESTROYED = false
 local targetenemy
@@ -68,17 +75,7 @@ local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
 -----Settings-----
 
-local runners = {
-	runner_main = nil :: RBXScriptConnection,
-	runner_lockon = nil :: RBXScriptConnection,
-	runner_mouse = nil :: RBXScriptConnection,
-	runner_input = nil :: RBXScriptConnection,
-	runner_players_list = nil :: RBXScriptConnection,
-	runner_npcs_list = nil :: RBXScriptConnection,
-	runner_highlight_npc = nil :: RBXScriptConnection,
-	runner_highlight_plr = nil :: RBXScriptConnection,
-	runner_direction_line = nil :: RBXScriptConnection,
-}
+local runners = {}
 
 -----SetUp GUI-----
 local screen = Instance.new("ScreenGui")
@@ -107,10 +104,81 @@ local selectpartframe
 local radius
 
 --PreLoad Local Universals Function:
-function vtype(o, t)
-	if o == nil then return false end
-	if type(o) == "userdata" then return typeof(o) == t end
-	return type(o) == t
+local function logs(text, w)
+    if not Logs then return end
+    if w then
+        warn(text)
+    else 
+        print(text)
+    end
+end
+
+function update_setting()
+	local update = {}
+	for name, value in pairs(configs) do
+		update[name] = value
+	end
+	writefile(file_path, HttpService:JSONEncode(update))
+end
+
+function reset_settings()
+    configs = table.clone(defaults_cofigs)
+    logs(`settings reset: {configs}`)
+
+    -- NormalDodgeDelayButton.Text = configs.normalDodgeDelay
+end
+
+local jsonAttempts = 0
+local function load_setting()
+
+    if not isfolder("NickHub") then
+        makefolder("NickHub")
+    end
+
+    if not isfile(file_path) then
+        writefile(file_path, "")
+    end
+
+	local readSuccess, file = readfile(file_path, true)
+	if readSuccess then
+        logs(`Load sucess: {file}`)
+		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
+			local success, response = pcall(function()
+				local json = HttpService:JSONDecode(file)
+				for key, defaultValue in pairs(configs) do
+					local value = json[key]
+					if value == defaultValue then
+                        logs(`UnChange | {key} | {value} | {typeof(value)}`)
+                        configs[key] = defaultValue
+                    elseif value == nil and defaultValue ~= nil then
+                        logs(`Table not exist | {key} | {value} | {typeof(value)}`)
+                        continue
+					else
+                        logs(`Change | {key} | {value} | {typeof(value)}`)
+                        configs[key] = value
+					end
+				end
+			end)
+			if not success then
+				jsonAttempts = jsonAttempts + 1
+				warn("Save Json Error:", response)
+				warn("Overwriting Save File")
+				writefile(file_path, defaults, true)
+				task.wait(1)
+				local dReadSuccess = readfile(file_path, true)
+				if dReadSuccess ~= nil and tostring(dReadSuccess):gsub("%s", "") ~= "" then
+					load_setting()
+				end
+			end
+		end
+	else
+		writefile(file_path, defaults, true)
+		task.wait(1)
+		local dReadSuccess, file = readfile(file_path, true)
+		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
+			load_setting()
+		end
+	end
 end
 
 local function getRoot(character)
@@ -133,54 +201,6 @@ local function character_available()
 
 	return available
 
-end
-
-local jsonAttempts = 0
-local function load_setting()
-	local readSuccess, out = readfile("NickHub/AIMLOCK.nh", true)
-	if readSuccess then
-		if out ~= nil and tostring(out):gsub("%s", "") ~= "" then
-			local success, response = pcall(function()
-				local json = HttpService:JSONDecode(out)
-
-				for key, defaultValue in pairs(configs) do
-					local value = json[key]
-					if vtype(value, typeof(defaultValue)) then
-						configs[key] = value
-					else
-						configs[key] = defaultValue
-					end
-				end
-			end)
-			if not success then
-				jsonAttempts = jsonAttempts + 1
-				warn("Save Json Error:", response)
-				warn("Overwriting Save File")
-				writefile("NickHub/AIMLOCK.nh", defaults, true)
-				task.wait(1)
-				local dReadSuccess, dOut = readfile("NickHub/AIMLOCK.nh", true)
-				if dReadSuccess and dOut ~= nil and tostring(dOut):gsub("%s", "") ~= "" then
-					load_setting()
-				end
-			end
-		end
-	else
-		writefile("NickHub/AIMLOCK.nh", defaults, true)
-		task.wait(1)
-		local dReadSuccess, dOut = readfile("NickHub/AIMLOCK.nh", true)
-		if dReadSuccess and dOut ~= nil and tostring(dOut):gsub("%s", "") ~= "" then
-			load_setting()
-		end
-	end
-
-end
-
-function update_setting()
-	local update = {}
-	for name, value in pairs(configs) do
-		update[name] = value
-	end
-	writefile("NickHub/AIMLOCK.nh", HttpService:JSONEncode(update))
 end
 
 local function sampleTrajectory(part, totalTime, dt)
@@ -535,6 +555,12 @@ do
 			
 			lockafterdeadbutton = gui_module.create_frame(settings_frame, "Lock after dead", "Lock after dead", configs.lockAfterDead)
 
+			HighlightTypeButton = gui_module.create_frame(settings_frame, "Hightlight Type", "Change your hightlight type", "Click")
+			HighlightTypeButton.Text = configs.highlightType
+
+			ChangeKeybindButton = gui_module.create_frame(settings_frame, "Keybind", "Keybind that activate your aimlock", "Click")
+			ChangeKeybindButton.Text = configs.activeKeybind
+
 			plr_folder_path = gui_module.create_frame(settings_frame, "Player Path", "Path", child_table.plr_folder.path:GetFullName())
 			plr_folder_path.ClearTextOnFocus = false
 
@@ -542,7 +568,6 @@ do
 			npc_folder_path.ClearTextOnFocus = false
 
 			SaveSettingsButton = gui_module.create_frame(settings_frame, "Save Setting", "Save the Setting to file", "Click")
-			
 
 		end
 
@@ -791,6 +816,45 @@ lock_nearest_enemy_button.Activated:Connect(function()
 	lock_nearest_enemy_button.BackgroundColor3 = if lock_nearest_enemy then truecolor else falsecolor
 end)
 
+ChangeKeybindButton.Activated:Connect(function()
+	if runners.ChooseKeybind then return end
+	ChangeKeybindButton.BackgroundColor3 = truecolor
+	
+	local allow = {
+		Enum.UserInputType.Keyboard,
+		Enum.UserInputType.MouseButton1,
+		Enum.UserInputType.MouseButton2,
+		Enum.UserInputType.MouseButton3
+	}
+
+	runners.ChooseKeybind = uis.InputBegan:Connect(function(input, gpe)
+		if gpe then return end
+		if not table.find(allow, input.UserInputType) then return end
+		if input.KeyCode == Enum.KeyCode.None and input.UserInputType == Enum.UserInputType.Keyboard then return end
+
+		if input.KeyCode ~= Enum.KeyCode.None then
+			configs.activeKeybind = uis:GetStringForKeyCode(input.KeyCode)
+		else
+			configs.activeKeybind = input.UserInputType.Name
+		end
+		ChangeKeybindButton.Text = configs.activeKeybind
+		if runners.ChooseKeybind then
+			ChangeKeybindButton.BackgroundColor3 = falsecolor
+			runners.ChooseKeybind:Disconnect()
+			runners.ChooseKeybind = nil
+		end
+	end)
+end)
+
+HighlightTypeButton.Activated:Connect(function()
+	if configs.highlightType == "ESP" then
+		configs.highlightType = "Box"
+	elseif configs.highlightType == "Box" then
+		configs.highlightType = "ESP"
+	end
+	HighlightTypeButton.Text = configs.highlightType
+end)
+
 ShowViewDirectionLineButton.Activated:Connect(function()
 	view_direction_line = not view_direction_line
 	ShowViewDirectionLineButton.BackgroundColor3 = if view_direction_line then truecolor else falsecolor
@@ -905,13 +969,32 @@ end)
 local function create_highlight(adornee, parent)
 	local isplr = players:GetPlayerFromCharacter(adornee)
 	if plr == isplr then return end
-	local new = Instance.new("Highlight")
+
+	local new
+	if configs.highlightType == "ESP" then
+		new = Instance.new("Highlight")
+		new.FillTransparency = 1
+		new.FillColor = Color3.new(1, 1, 1)
+	elseif configs.highlightType == "Box" then
+		new = Instance.new("BillboardGui")
+		new.AlwaysOnTop = true
+		new.Size = UDim2.new(5,0,7,0)
+		local frame = Instance.new("Frame")
+		frame.BackgroundTransparency = 1
+		frame.Size = UDim2.new(1,0,1,0)
+		frame.Parent = new
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Color3.fromRGB(255, 255, 0)
+		stroke.Thickness = 1
+		stroke.Parent = frame
+	end
+	
 	new.Name = "HighlightYOOitAIMHIGHLIGHT"
-	new.FillTransparency = .9
-	new.FillColor = Color3.new(1, 1, 1)
 	new.Adornee = adornee
 	new.Parent = parent or highlight_folder
 	highlights_store[adornee] = new
+
+	local real_parent = new.Parent
 
 	task.spawn(function()
 		if isplr and not adornee:FindFirstChild('Head') then
@@ -920,33 +1003,54 @@ local function create_highlight(adornee, parent)
 		if isplr and adornee:FindFirstChild("Head") and highlights_store[adornee] then
 			local BillboardGui = Instance.new("BillboardGui")
 			local TextLabel = Instance.new("TextLabel")
-			BillboardGui.Adornee = adornee.Head
-			BillboardGui.Name = isplr.Name
-			BillboardGui.Parent = new
-			BillboardGui.Size = UDim2.new(0, 100, 0, 150)
-			BillboardGui.StudsOffset = Vector3.new(0, 1, 0)
-			BillboardGui.AlwaysOnTop = true
-			TextLabel.Parent = BillboardGui
-			TextLabel.BackgroundTransparency = 1
-			TextLabel.Position = UDim2.new(0, 0, 0, -50)
-			TextLabel.Size = UDim2.new(0, 100, 0, 100)
-			TextLabel.Font = Enum.Font.SourceSansSemibold
-			TextLabel.TextSize = 20
-			TextLabel.TextColor3 = Color3.new(1, 1, 1)
-			TextLabel.TextStrokeTransparency = 0
-			TextLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-			TextLabel.Text = 'Name: '..isplr.Name
-			TextLabel.ZIndex = 10
+
+			if configs.showEspStats then
+				BillboardGui.Adornee = adornee.Head
+				BillboardGui.Name = isplr.Name
+				BillboardGui.Parent = new
+				BillboardGui.Size = UDim2.new(0, 100, 0, 150)
+				BillboardGui.StudsOffset = Vector3.new(0, 1, 0)
+				BillboardGui.AlwaysOnTop = true
+				TextLabel.Parent = BillboardGui
+				TextLabel.BackgroundTransparency = 1
+				TextLabel.Position = UDim2.new(0, 0, 0, -50)
+				TextLabel.Size = UDim2.new(0, 100, 0, 100)
+				TextLabel.Font = Enum.Font.SourceSansSemibold
+				TextLabel.TextSize = 20
+				TextLabel.TextColor3 = Color3.new(1, 1, 1)
+				TextLabel.TextStrokeTransparency = 0
+				TextLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+				TextLabel.Text = 'Name: '..isplr.Name
+				TextLabel.ZIndex = 10
+			else
+				BillboardGui:Destroy()
+				TextLabel:Destroy()
+			end
 
 			local espLoopFunc
 
 			local function espLoop()
-				if highlights_store[adornee] then
+				if highlights_store[adornee] and configs.showEspStats then
 					if adornee:FindFirstChildOfClass("Humanoid") and getRoot(adornee) and character_available() then
 						local pos = math.floor((hrp.Position - getRoot(adornee).Position).magnitude)
 						local mult = 10^(1 or 0)
 						local math = math.floor(adornee:FindFirstChildOfClass('Humanoid').Health * mult + 0.5) / mult
 						TextLabel.Text = 'Name: '..isplr.Name..' | Health: '..math..' | Studs: '..pos
+					end
+					local teamcolor = Color3.new(1, 1, 1)
+					if not configs.lockTeam then
+						if isplr.TeamColor == plr.TeamColor then
+							teamcolor = Color3.new(0, 1, 0)	
+						else
+							teamcolor = Color3.new(1, 0, 0)
+						end
+					end
+					if not new:IsDescendantOf(real_parent) then espLoopFunc:Disconnect() end
+					if new:IsA("BillboardGui") then
+						if not new:FindFirstChildOfClass("Frame") then return end
+						new:FindFirstChildOfClass("Frame").BackgroundColor3 = teamcolor
+					else
+						new.FillColor = teamcolor
 					end
 				else
 					espLoopFunc:Disconnect()
@@ -971,7 +1075,7 @@ local function clear_nil_highlight()
 end
 
 show_highlight_plr_folder_button.Activated:Connect(function()
-	print("highlight in player folder")
+	logs("highlight in player folder")
 	show_highlight_plr_folder = not show_highlight_plr_folder
 	show_highlight_plr_folder_button.BackgroundColor3 = if show_highlight_plr_folder then truecolor else falsecolor
 
@@ -1006,7 +1110,7 @@ show_highlight_plr_folder_button.Activated:Connect(function()
 end)
 
 show_highlight_npc_folder_button.Activated:Connect(function()
-	print("highlight in npc folder")
+	logs("highlight in npc folder")
 	show_highlight_npc_folder = not show_highlight_npc_folder
 	show_highlight_npc_folder_button.BackgroundColor3 = if show_highlight_npc_folder then truecolor else falsecolor
 
@@ -1162,24 +1266,6 @@ runners.runner_lockon = rs.RenderStepped:Connect(function()
 	end
 end)
 
-runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
-	if gpe then return end
-
-	if input.UserInputType == Enum.UserInputType.MouseButton3 then
-		enable = not enable
-		targetenemy = nil
-		if enable then
-			colorstatus.BackgroundColor3 = truecolor
-		else
-			colorstatus.BackgroundColor3 = falsecolor
-		end
-		radius.BackgroundColor3 = if enable then Color3.fromRGB(255, 255, 0) else colorstatus.BackgroundColor3
-	elseif input.KeyCode == Enum.KeyCode.KeypadPlus then
-		screen.Enabled = not screen.Enabled
-		extrascreen.Enabled = not extrascreen.Enabled
-	end
-end)
-
 local delay_t = 10 -- second
 local rpl = 10
 local previous_rpl = nil
@@ -1229,4 +1315,33 @@ ReloadButton.Activated:Connect(function()
 	make_detect_function()
 end)
 
-print("aimlock: successful run the gui and function")
+runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+
+	local keyCode
+	local inputType
+
+	pcall(function() keyCode = Enum.KeyCode[configs.activeKeybind] end)
+	pcall(function() inputType = Enum.UserInputType[configs.activeKeybind] end)
+
+	if (keyCode and input.KeyCode == keyCode) or (inputType and input.UserInputType == inputType) then
+		enable = not enable
+		targetenemy = nil
+		if enable then
+			colorstatus.BackgroundColor3 = truecolor
+		else
+			colorstatus.BackgroundColor3 = falsecolor
+		end
+		radius.BackgroundColor3 = if enable then Color3.fromRGB(255, 255, 0) else colorstatus.BackgroundColor3
+	elseif input.KeyCode == Enum.KeyCode.KeypadPlus then
+		screen.Enabled = not screen.Enabled
+		extrascreen.Enabled = not extrascreen.Enabled
+	end
+end)
+
+players.PlayerRemoving:Connect(function(player)
+    if player ~= plr then return end
+    update_setting()
+end)
+
+logs("aimlock: successful run the gui and function")
