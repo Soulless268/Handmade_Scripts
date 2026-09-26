@@ -13,7 +13,7 @@ HubSetup.FalseColor = Color3.fromRGB(163, 162, 165)
 
 HubSetup.UiCorner = function(Parent, Ui)
 	local Corner = Instance.new("UICorner")
-	Corner.CornerRadius = Ui
+	Corner.CornerRadius = Ui or UDim.new(0,8)
 	Corner.Parent = Parent
 	return Corner
 end
@@ -48,8 +48,11 @@ end
 
 HubSetup.createHub = function(configs, file_path)
 	local self = setmetatable({}, {__index = HubSetup})
-	
+
+	self._folder = nil
 	self._screen = nil
+	self._description_screen = nil
+
 	self._main_frame = nil
 	self._catagory_frame = nil
 	self._background = nil
@@ -57,7 +60,7 @@ HubSetup.createHub = function(configs, file_path)
 	self._open_button = nil
 	self._minimize_button = nil
 	self._hover_description = nil
-	
+
 	self._enable = false
 	self._minimized = false
 	self._DESTROYED = false
@@ -68,17 +71,17 @@ HubSetup.createHub = function(configs, file_path)
 	self._catagories = {}
 	self._current_catagory = nil
 	self._runners = {}
-	
+
 	self:CreateFrameWork()
 
 	function self:CreateCatagory(catagories: {string})
 		local function create(catagory_name)
 			local self_cat = setmetatable({}, {__index = {}})
-			
+
 			self_cat._frames = {}
 			self_cat._main_f = nil
 			self_cat._button = nil
-			
+
 			self_cat._main_f = Instance.new("ScrollingFrame")
 			self_cat._main_f.Active = true
 			self_cat._main_f.Visible = false
@@ -91,29 +94,50 @@ HubSetup.createHub = function(configs, file_path)
 			self_cat._main_f.ScrollBarThickness = 0
 			self_cat._main_f.Parent = self._main_frame
 			HubSetup.UiStroke(self_cat._main_f)
-			HubSetup.UiGrid(self_cat._main_f)
+			local list_cat = HubSetup.UiList(self_cat._main_f)
+			list_cat.HorizontalAlignment = Enum.HorizontalAlignment.Center
+			list_cat.SortOrder = Enum.SortOrder.LayoutOrder
+			list_cat.Padding = UDim.new(.05,0)
+
+			local blank_up = Instance.new("Frame")
+			blank_up.BackgroundTransparency = 1
+			blank_up.Size = UDim2.new(1,0,.05,0)
+			blank_up.LayoutOrder = -1
+			blank_up.Parent = self_cat._main_f
+
+			local blank_down = Instance.new("Frame")
+			blank_down.BackgroundTransparency = 1
+			blank_down.Size = UDim2.new(1,0,.05,0)
+			blank_down.LayoutOrder = 1
+			blank_down.Parent = self_cat._main_f
 
 			self_cat._button = Instance.new("TextButton")
 			self_cat._button.Text = catagory_name
+			self_cat._button.Size = UDim2.new(0.95, 0, 0.1, 0)
 			self_cat._button.TextColor3 = Color3.fromRGB(255, 255, 255)
 			self_cat._button.TextScaled = true
 			self_cat._button.TextStrokeTransparency = 0
-			self_cat._button.TextColor3 = Color3.fromRGB(255, 255, 255)
 			self_cat._button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 			self_cat._button.Parent = self._catagory_frame
-			HubSetup.UiStroke(self_cat._button)
-			
+			local s = HubSetup.UiStroke(self_cat._button)
+			s.LineJoinMode = Enum.LineJoinMode.Round
+			HubSetup.UiCorner(self_cat._button, UDim.new(.1,0))
+
+			local blank_f = Instance.new("Frame")
+			blank_f.BackgroundTransparency = 1
+			blank_f.LayoutOrder = -1
+
 			self_cat._button.Activated:Connect(function()
 				self:set_catagory(self_cat._main_f)
 			end)
-			
+
 			function self_cat:CreateDivider(name)
 				name = name or ""
 				local frame = Instance.new("Frame")
 				frame.BackgroundTransparency = 1
-				frame.Size = UDim2.new(1,0,0,.05)
+				frame.Size = UDim2.new(1,0,.152,0)
 				frame.Parent = self_cat._main_f
-				
+
 				local divider = Instance.new("TextLabel")
 				divider.Text = `----------{name}----------`
 				divider.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -122,9 +146,8 @@ HubSetup.createHub = function(configs, file_path)
 				divider.RichText = false
 				divider.Size = UDim2.new(1,0,1,0)
 				divider.Parent = frame
-				HubSetup.UiStroke(divider)
 			end
-			
+
 			function self_cat:CreateFrame(title: string, description: string, value)
 				local self_frame = setmetatable({}, {__index = new_gui_module})
 				self_frame._value = value
@@ -136,14 +159,15 @@ HubSetup.createHub = function(configs, file_path)
 
 				self_frame._truecolor = HubSetup.TrueColor
 				self_frame._falsecolor = HubSetup.FalseColor
-				
+
 				self_frame._button1 = nil
 
 				local frame = Instance.new("Frame")
 				frame.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
+				frame.Size = UDim2.new(.937, 0, .152, 0)
 				frame.Parent = self_cat._main_f
 				HubSetup.UiStroke(frame)
-				
+
 				self_frame._left_frame = Instance.new("Frame")
 				self_frame._left_frame.BackgroundTransparency = 1
 				self_frame._left_frame.Size = UDim2.new(.5,0,1,0)
@@ -153,21 +177,16 @@ HubSetup.createHub = function(configs, file_path)
 				g1.HorizontalAlignment = Enum.HorizontalAlignment.Left
 				g1.ItemLineAlignment = Enum.ItemLineAlignment.Center
 				g1.VerticalAlignment = Enum.VerticalAlignment.Center
-				
+
 				self_frame._right_frame = Instance.new("Frame")
 				self_frame._right_frame.BackgroundTransparency = 1
 				self_frame._right_frame.Size = UDim2.new(.5,0,1,0)
 				self_frame._right_frame.Position = UDim2.new(1,0,0,0)
 				self_frame._right_frame.AnchorPoint = Vector2.new(1,0)
 				self_frame._right_frame.Parent = frame
-				local g2 = HubSetup.UiList(self_frame._right_frame)
-				g2.FillDirection = Enum.FillDirection.Horizontal
-				g2.HorizontalAlignment = Enum.HorizontalAlignment.Right
-				g2.ItemLineAlignment = Enum.ItemLineAlignment.Center
-				g2.VerticalAlignment = Enum.VerticalAlignment.Center
 
 				local title_label = Instance.new("TextLabel")
-				title_label.Text = title
+				title_label.Text = `  {title}`
 				title_label.TextColor3 = Color3.fromRGB(255, 255, 255)
 				title_label.TextStrokeTransparency = 0
 				title_label.TextXAlignment = Enum.TextXAlignment.Left
@@ -180,6 +199,9 @@ HubSetup.createHub = function(configs, file_path)
 
 				local info_icon
 				if description then
+					local open_des = false
+					print(self)
+
 					info_icon = Instance.new("ImageButton")
 					info_icon.Image = "rbxassetid://13012250972"
 					info_icon.BackgroundTransparency = 1
@@ -187,19 +209,31 @@ HubSetup.createHub = function(configs, file_path)
 					info_icon.Position = UDim2.new(1,-10,0,0)
 					info_icon.Parent = self_frame._left_frame
 					info_icon.LayoutOrder = 1
-					
+
+					local des_frame = Instance.new("TextLabel")
+					des_frame.Text = description
+					des_frame.TextScaled = true
+					des_frame.Visible = false
+					des_frame.AnchorPoint = Vector2.new(.5, 0)
+					des_frame.Size = UDim2.new(0,200,0,100)
+					des_frame.Position = UDim2.new(1,0,1,0)
+					des_frame.ZIndex = 9999999
+					des_frame.Parent = info_icon
+
 					info_icon.Activated:Connect(function()
-						print(description)
+						open_des = not open_des
+						des_frame.Visible = open_des
 					end)
 				end
-				
+
 				task.spawn(function()
 					repeat
 						task.wait()
 					until self_frame._button1
-					
+
+					self_frame._button1.Position = UDim2.new(1, -25 , 0.5, 0)
 					self_frame._button1.Parent = self_frame._right_frame
-					
+
 					if self_frame._button1:IsA("TextButton") or self_frame._button1:IsA("ImageButton") then
 						self_frame._button1.Activated:Connect(function()
 							if typeof(self_frame._value) == "boolean" then
@@ -216,19 +250,19 @@ HubSetup.createHub = function(configs, file_path)
 							if self_frame._func then self_frame._func(self_frame._value, enterPressed) end
 						end)
 					end
-					
+
 				end)
-				
+
 				function self_frame:OnFunction(func)
 					self_frame._func = func
 				end
-				
+
 				return self_frame
 			end
 
 			return self_cat
 		end
-		
+
 		if type(catagories) == "table" then
 			for i, catagory in ipairs(catagories) do
 				self._catagories[catagory] = create(catagory)
@@ -237,9 +271,9 @@ HubSetup.createHub = function(configs, file_path)
 		else
 			warn("Invalid catagory type. Expected table.")
 		end
-		
+
 	end
-	
+
 	return self
 end
 
@@ -255,11 +289,20 @@ function HubSetup:set_catagory(frame)
 end
 
 function HubSetup:CreateFrameWork()
+	self._folder = Instance.new("Folder")
+	self._folder.Name = "Folder(DO NOT)"
+	self._folder.Parent = coregui or plr.PlayerGui
+
 	self._screen = Instance.new("ScreenGui")
 	self._screen.Name = "NickHub"
 	self._screen.ResetOnSpawn = false
-	self._screen.Parent = coregui or plr.PlayerGui
-	
+	self._screen.Parent = self._folder
+
+	self._description_screen = Instance.new("ScreenGui")
+	self._description_screen.Name = "Description"
+	self._description_screen.ResetOnSpawn = false
+	self._description_screen.Parent = self._folder
+
 	self._main_frame = Instance.new("Frame")
 	self._main_frame.Draggable = true
 	self._main_frame.Name = "Main"
@@ -267,9 +310,11 @@ function HubSetup:CreateFrameWork()
 	self._main_frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
 	self._main_frame.AnchorPoint = Vector2.new(1, 0)
 	self._main_frame.Position = UDim2.new(1, 0, 0.15, 0)
-	self._main_frame.Size = UDim2.new(0.25, 0, 0.4, 0)
+	self._main_frame.Size = UDim2.new(0.4, 0, 0.55, 0)
 	self._main_frame.Parent = self._screen
-	HubSetup.UiStroke(self._main_frame)
+	HubSetup.UiCorner(self._main_frame)
+	local s = HubSetup.UiStroke(self._main_frame)
+	s.LineJoinMode = Enum.LineJoinMode.Round
 
 	self._background = Instance.new("ImageLabel")
 	self._background.BackgroundTransparency = 1
@@ -280,7 +325,6 @@ function HubSetup:CreateFrameWork()
 	self._background.Parent = self._main_frame
 
 	do
-
 		self._close_button = Instance.new("TextButton")
 		self._close_button.Text = "X"
 		self._close_button.AnchorPoint = Vector2.new(1,0)
@@ -290,6 +334,11 @@ function HubSetup:CreateFrameWork()
 		self._close_button.Position = UDim2.new(1,0,0,0)
 		self._close_button.Size = UDim2.new(0.05, 0,0.1, 0)
 		self._close_button.Parent = self._main_frame
+		HubSetup.UiCorner(self._close_button)
+		local s_c = HubSetup.UiStroke(self._close_button)
+		s_c.Transparency = .76
+		s_c.LineJoinMode = Enum.LineJoinMode.Round
+		s_c.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
 		self._minimize_button = Instance.new("TextButton")
 		self._minimize_button.Text = "-"
@@ -298,9 +347,14 @@ function HubSetup:CreateFrameWork()
 		self._minimize_button.TextScaled = true
 		self._minimize_button.TextColor3 = Color3.fromRGB(255, 170, 0)
 		self._minimize_button.Position = UDim2.new(.95,0,0,0)
-		self._minimize_button.Size = UDim2.new(0.1,0,0.1,0)
+		self._minimize_button.Size = UDim2.new(0.05,0,0.1,0)
 		self._minimize_button.Parent = self._main_frame
-		
+		HubSetup.UiCorner(self._minimize_button)
+		local s_m = HubSetup.UiStroke(self._minimize_button)
+		s_m.Transparency = .76
+		s_m.LineJoinMode = Enum.LineJoinMode.Round
+		s_m.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
 		self._catagory_frame = Instance.new("ScrollingFrame")
 		self._catagory_frame.Active = true
 		self._catagory_frame.BackgroundTransparency = .25
@@ -312,7 +366,16 @@ function HubSetup:CreateFrameWork()
 		self._catagory_frame.ScrollBarThickness = 0
 		self._catagory_frame.Parent = self._main_frame
 		HubSetup.UiStroke(self._catagory_frame)
-		HubSetup.UiGrid(self._catagory_frame)
+		local list_cat_f = HubSetup.UiList(self._catagory_frame)
+		list_cat_f.HorizontalAlignment = Enum.HorizontalAlignment.Center
+		list_cat_f.SortOrder = Enum.SortOrder.LayoutOrder
+		list_cat_f.Padding = UDim.new(.025,0)
+
+		local blank_f = Instance.new("Frame")
+		blank_f.BackgroundTransparency = 1
+		blank_f.Size = UDim2.new(1,0,.025,0)
+		blank_f.LayoutOrder = -1
+		blank_f.Parent = self._catagory_frame
 
 	end
 

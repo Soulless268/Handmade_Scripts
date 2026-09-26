@@ -4,7 +4,8 @@ function module:CreateToggle()
 	self._button1 = Instance.new("TextButton")
 	self._button1.Text = " "
 	self._button1.BackgroundColor3 = if self._value then self._truecolor else self._falsecolor
-	self._button1.Position = UDim2.new(.75,0,0,0)
+	self._button1.AnchorPoint = Vector2.new(1, .5)
+	self._button1.Position = UDim2.new(1, -25, .5, 0)
 	self._button1.Size = UDim2.new(0,40,0,20)
 
 	local circle = Instance.new("Frame")
@@ -45,15 +46,17 @@ end
 function module:CreateTextBox()
 	self._button1 = Instance.new("TextBox")
 	self._button1.Text = tostring(self._value)
-	self._button1.Position = UDim2.new(.75,0,0,0)
+	self._button1.AnchorPoint = Vector2.new(1, .5)
+	self._button1.Position = UDim2.new(1, -25, .5, 0)
 	self._button1.Size = UDim2.new(.75,0,.5,0)
 	return self
 end
 
 function module:CreateSelector()
 	self._button1 = Instance.new("TextButton")
-	self._button1.Text = "None"
-	self._button1.Position = UDim2.new(.75,0,0,0)
+	self._button1.Text = if self._value then tostring(self._value) else "None"
+	self._button1.AnchorPoint = Vector2.new(1, .5)
+	self._button1.Position = UDim2.new(1, -25, .5, 0)
 	self._button1.Size = UDim2.new(.75,0,.5,0)
 	self._button1.TextScaled = true
 	self._button1.TextWrapped = true
@@ -63,10 +66,15 @@ end
 function module:CreateButton()
 	self._button1 = Instance.new("TextButton")
 	self._button1.Text = ">"
-	self._button1.Position = UDim2.new(.75,0,0,0)
-	self._button1.Size = UDim2.new(.75,0,.5,0)
+	self._button1.AnchorPoint = Vector2.new(1, .5)
+	self._button1.Position = UDim2.new(1, -25, .5, 0)
+	self._button1.Size = UDim2.new(.5,0,.5,0)
 	self._button1.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
 	self._button1.TextScaled = true
+	
+	local ui_corner = Instance.new("UICorner")
+	ui_corner.CornerRadius = UDim.new(1,0)
+	ui_corner.Parent = self._button1
 	
 	return self
 end
