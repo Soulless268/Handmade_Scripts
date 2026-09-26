@@ -1,0 +1,74 @@
+local module = {}
+
+function module:CreateToggle()
+	self._button1 = Instance.new("TextButton")
+	self._button1.Text = " "
+	self._button1.BackgroundColor3 = if self._value then self._truecolor else self._falsecolor
+	self._button1.Position = UDim2.new(.75,0,0,0)
+	self._button1.Size = UDim2.new(0,40,0,20)
+
+	local circle = Instance.new("Frame")
+	circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	circle.Size = UDim2.new(.5,0,1,0)
+	circle.Parent = self._button1
+
+	local ui_corner_c = Instance.new("UICorner")
+	ui_corner_c.CornerRadius = UDim.new(1,0)
+	ui_corner_c.Parent = circle
+
+	local ui_corner = Instance.new("UICorner")
+	ui_corner.CornerRadius = UDim.new(1,0)
+	ui_corner.Parent = self._button1
+
+	local ui_stroke = Instance.new("UIStroke")
+	ui_stroke.Color = Color3.fromRGB(100,100,100)
+	ui_stroke.Thickness = 3
+	ui_stroke.BorderStrokePosition = Enum.BorderStrokePosition.Outer
+	ui_stroke.LineJoinMode = Enum.LineJoinMode.Round
+	ui_stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	ui_stroke.Parent = self._button1
+	
+	self._built_in_func = function(value)
+		if not value then
+			circle.AnchorPoint = Vector2.new(0,0)
+			circle.Position = UDim2.new(0,0,0,0)
+		else
+			circle.AnchorPoint = Vector2.new(1,0)
+			circle.Position = UDim2.new(1,0,0,0)
+		end
+	end
+	self._built_in_func(self._value)
+	
+	return self
+end
+
+function module:CreateTextBox()
+	self._button1 = Instance.new("TextBox")
+	self._button1.Text = tostring(self._value)
+	self._button1.Position = UDim2.new(.75,0,0,0)
+	self._button1.Size = UDim2.new(.75,0,.5,0)
+	return self
+end
+
+function module:CreateSelector()
+	self._button1 = Instance.new("TextButton")
+	self._button1.Text = "None"
+	self._button1.Position = UDim2.new(.75,0,0,0)
+	self._button1.Size = UDim2.new(.75,0,.5,0)
+	self._button1.TextScaled = true
+	self._button1.TextWrapped = true
+	return self
+end
+
+function module:CreateButton()
+	self._button1 = Instance.new("TextButton")
+	self._button1.Text = ">"
+	self._button1.Position = UDim2.new(.75,0,0,0)
+	self._button1.Size = UDim2.new(.75,0,.5,0)
+	self._button1.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+	self._button1.TextScaled = true
+	
+	return self
+end
+
+return module
