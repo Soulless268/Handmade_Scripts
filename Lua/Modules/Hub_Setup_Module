@@ -134,6 +134,9 @@ HubSetup.createHub = function(configs, file_path)
 				self_frame._ready = false
 				self_frame._func = nil
 				self_frame._built_in_func = nil
+
+				self_frame._truecolor = self._truecolor
+				self_frame._falsecolor = self._falsecolor
 				
 				self_frame._button1 = nil
 
@@ -326,7 +329,7 @@ function HubSetup:CreateFrameWork()
 
 	self._close_button.Activated:Connect(function()
 
-		for i,v in pairs(hub._runners) do
+		for i,v in pairs(self._runners) do
 			if v then
 				v:Disconnect()
 			end
