@@ -335,11 +335,11 @@ function HubSetup:CreateFrameWork()
 			end
 		end
 
-		update_setting()
+		-- update_setting()
 		self._enable = false
 		self._DESTROYED = true
 
-		screen:Destroy()
+		self._screen:Destroy()
 
 		if self.OnClose then self.OnClose() end
 	end)
@@ -349,7 +349,7 @@ function HubSetup:CreateFrameWork()
 		self._main_frame.Visible = false
 		self._open_button.Visible = true
 
-		for _,v in pairs(screen:GetChildren()) do
+		for _,v in pairs(self._screen:GetChildren()) do
 			if v == self._main_frame then continue end
 			if v == self._open_button then continue end
 			if self._frame_store[v] then continue end
