@@ -8,6 +8,8 @@ local plr = players.LocalPlayer
 local new_gui_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/New_GUI_Module"))()
 
 local background_image_id = "rbxassetid://86093393173023"
+HubSetup.TrueColor = Color3.fromRGB(170, 170, 0)
+HubSetup.FalseColor = Color3.fromRGB(163, 162, 165)
 
 HubSetup.UiCorner = function(Parent, Ui)
 	local Corner = Instance.new("UICorner")
@@ -66,9 +68,6 @@ HubSetup.createHub = function(configs, file_path)
 	self._catagories = {}
 	self._current_catagory = nil
 	self._runners = {}
-
-	self._truecolor = Color3.fromRGB(170, 170, 0)
-	self._falsecolor = Color3.fromRGB(163, 162, 165)
 	
 	self:CreateFrameWork()
 
@@ -135,8 +134,8 @@ HubSetup.createHub = function(configs, file_path)
 				self_frame._func = nil
 				self_frame._built_in_func = nil
 
-				self_frame._truecolor = self._truecolor
-				self_frame._falsecolor = self._falsecolor
+				self_frame._truecolor = HubSetup.TrueColor
+				self_frame._falsecolor = HubSetup.FalseColor
 				
 				self_frame._button1 = nil
 
@@ -205,7 +204,7 @@ HubSetup.createHub = function(configs, file_path)
 						self_frame._button1.Activated:Connect(function()
 							if typeof(self_frame._value) == "boolean" then
 								self_frame._value = not self_frame._value
-								self_frame._button1.BackgroundColor3 = if self_frame._value then self._truecolor else self._falsecolor
+								self_frame._button1.BackgroundColor3 = if self_frame._value then self_frame._truecolor else self_frame._falsecolor
 							end
 							if self_frame._built_in_func then self_frame._built_in_func(self_frame._value) end
 							if self_frame._func then self_frame._func(self_frame._value) end
