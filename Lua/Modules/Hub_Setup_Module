@@ -3,6 +3,7 @@ local HubSetup = {}
 local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
 local rs = game:GetService("RunService")
+local HttpService = game:GetService("HttpService")
 
 local plr = players.LocalPlayer
 
@@ -252,15 +253,28 @@ HubSetup.createHub = function(configs, file_path)
 								self_frame._value = not self_frame._value
 								self_frame._button1.BackgroundColor3 = if self_frame._value then self_frame._truecolor else self_frame._falsecolor
 							end
-							if self_frame._built_in_func then self_frame._built_in_func(self_frame._value)
-							else self_frame._built_in_func = function(value) self_frame._button1.Text = value end; self_frame._built_in_func(self_frame._value) end
+							if self_frame._built_in_func then 
+								self_frame._built_in_func(self_frame._value)
+							else
+								self_frame._built_in_func = function(value)
+									if not value then return end
+									self_frame._button1.Text = value
+								end
+								self_frame._built_in_func(self_frame._value)
+							end
 							if self_frame._func then self_frame._func(self_frame._value) end
 						end)
 					elseif self_frame._button1:IsA("TextBox") then
 						self_frame._button1.FocusLost:Connect(function(enterPressed)
 							self_frame._value = self_frame._button1.Text
-							if self_frame._built_in_func then self_frame._built_in_func(self_frame._value)
-							else self_frame._built_in_func = function(value) self_frame._button1.Text = value end; self_frame._built_in_func(self_frame._value) end
+							if self_frame._built_in_func and self_frame._value then self_frame._built_in_func(self_frame._value)
+							else
+								self_frame._built_in_func = function(value)
+									if not value then return end
+									self_frame._button1.Text = value
+								end
+								self_frame._built_in_func(self_frame._value)
+							end
 							if self_frame._func then self_frame._func(self_frame._value, enterPressed) end
 						end)
 					end
@@ -298,6 +312,7 @@ HubSetup.createHub = function(configs, file_path)
 end
 
 function HubSetup:UpdateSettings()
+	if not next(self._registered_configs_frames) then return end
 	local update = {}
 	for name, value in self._registered_configs_frames do
 		update[name] = v._value
