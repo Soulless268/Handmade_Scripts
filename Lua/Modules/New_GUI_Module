@@ -29,10 +29,9 @@ function module:CreateToggle()
 	ui_stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	ui_stroke.Parent = self._button1
 	
-	self._built_in_func = function(value)
-		if value == nil then value = self._value end
-		self._button1.BackgroundColor3 = if value then self._truecolor else self._falsecolor
-		if not value then
+	function self:BuiltInFunction()
+		self._button1.BackgroundColor3 = if self._value then self._truecolor else self._falsecolor
+		if not self._value then
 			circle.AnchorPoint = Vector2.new(0,0)
 			circle.Position = UDim2.new(0,0,0,0)
 		else
@@ -40,7 +39,8 @@ function module:CreateToggle()
 			circle.Position = UDim2.new(1,0,0,0)
 		end
 	end
-	self._built_in_func(self._value)
+
+	self:BuiltInFunction()
 	
 	return self
 end
