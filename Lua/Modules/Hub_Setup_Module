@@ -2,6 +2,7 @@ local HubSetup = {}
 
 local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
+local rs = game:GetService("RunService")
 
 local plr = players.LocalPlayer
 
@@ -47,34 +48,46 @@ HubSetup.UiList = function(parent)
 end
 
 HubSetup.createHub = function(configs, file_path)
-	local self = setmetatable({}, {__index = HubSetup})
+	local self_main = setmetatable({}, {__index = HubSetup})
 
-	self._folder = nil
-	self._screen = nil
-	self._description_screen = nil
+	self_main._folder = nil
+	self_main._screen = nil
+	self_main._description_screen = nil
 
-	self._main_frame = nil
-	self._catagory_frame = nil
-	self._background = nil
-	self._close_button = nil
-	self._open_button = nil
-	self._minimize_button = nil
-	self._hover_description = nil
+	self_main._main_frame = nil
+	self_main._catagory_frame = nil
+	self_main._background = nil
+	self_main._close_button = nil
+	self_main._open_button = nil
+	self_main._minimize_button = nil
+	self_main._hover_description = nil
 
-	self._enable = false
-	self._minimized = false
-	self._DESTROYED = false
-	self._frame_store = {}
-	self._gui = {}
-	self._configs = configs or {}
-	self._file_path = file_path or nil
-	self._catagories = {}
-	self._current_catagory = nil
-	self._runners = {}
+	self_main._enable = false
+	self_main._minimized = false
+	self_main._DESTROYED = false
+	self_main._frame_store = {}
+	self_main._gui = {}
+	self_main._default_configs = configs or {}
+	self_main._registered_configs_frames = {}
+	self_main._autosave_delay = 10
+	self_main._autosave_c_dt = 0
+	self_main._file_path = file_path or nil
+	self_main._catagories = {}
+	self_main._current_catagory = nil
+	self_main._runners = {}
 
-	self:CreateFrameWork()
+	self_main:CreateFrameWork()
 
-	function self:CreateCatagory(catagories: {string})
+	if next(self_main._default_configs) then self_main:LoadSaveFile() end
+
+	self_main._runners.autosave = rs.RenderStepped:Connect(function(dt)
+		self_main._autosave_c_dt += dt
+		if self_main._autosave_c_dt < self_main._autosave_delay then return end
+		self_main._autosave_c_dt -= self_main._autosave_delay
+		self_main:UpdateSettings()
+	end)
+
+	function self_main:CreateCatagory(catagories: {string})
 		local function create(catagory_name)
 			local self_cat = setmetatable({}, {__index = {}})
 
@@ -128,7 +141,7 @@ HubSetup.createHub = function(configs, file_path)
 			blank_f.LayoutOrder = -1
 
 			self_cat._button.Activated:Connect(function()
-				self:set_catagory(self_cat._main_f)
+				self:SetCatagory(self_cat._main_f)
 			end)
 
 			function self_cat:CreateDivider(name)
@@ -148,12 +161,12 @@ HubSetup.createHub = function(configs, file_path)
 				divider.Parent = frame
 			end
 
-			function self_cat:CreateFrame(title: string, description: string, value)
-				local self_frame = setmetatable({}, {__index = new_gui_module})
+			function self_cat:CreateFrame(title: string, description: string, value: any)
+				self_cat._frames[title] = {}
+				local self_frame = setmetatable(self_cat._frames[title], {__index = new_gui_module})
 				self_frame._value = value
 				self_frame._left_frame = nil
 				self_frame._right_frame = nil
-				self_frame._ready = false
 				self_frame._func = nil
 				self_frame._built_in_func = nil
 
@@ -200,7 +213,6 @@ HubSetup.createHub = function(configs, file_path)
 				local info_icon
 				if description then
 					local open_des = false
-					print(self)
 
 					info_icon = Instance.new("ImageButton")
 					info_icon.Image = "rbxassetid://13012250972"
@@ -240,23 +252,31 @@ HubSetup.createHub = function(configs, file_path)
 								self_frame._value = not self_frame._value
 								self_frame._button1.BackgroundColor3 = if self_frame._value then self_frame._truecolor else self_frame._falsecolor
 							end
-							if self_frame._built_in_func then self_frame._built_in_func(self_frame._value) end
+							if self_frame._built_in_func then self_frame._built_in_func(self_frame._value)
+							else self_frame._built_in_func = function(value) self_frame._button1.Text = value end; self_frame._built_in_func(self_frame._value) end
 							if self_frame._func then self_frame._func(self_frame._value) end
 						end)
 					elseif self_frame._button1:IsA("TextBox") then
 						self_frame._button1.FocusLost:Connect(function(enterPressed)
 							self_frame._value = self_frame._button1.Text
-							if self_frame._built_in_func then self_frame._built_in_func(self_frame._value) end
+							if self_frame._built_in_func then self_frame._built_in_func(self_frame._value)
+							else self_frame._built_in_func = function(value) self_frame._button1.Text = value end; self_frame._built_in_func(self_frame._value) end
 							if self_frame._func then self_frame._func(self_frame._value, enterPressed) end
 						end)
 					end
 
 				end)
 
+				function self_frame:RegisterSave(config_name)
+					if not self_main._default_configs[config_name] then warn(`Config name: {config_name} are not exist`) return end
+					self_main._registered_configs_frames[config_name] = self
+				end
+
 				function self_frame:OnFunction(func)
 					self_frame._func = func
 				end
 
+				table.insert(self_cat._frames, self_frame)
 				return self_frame
 			end
 
@@ -266,7 +286,7 @@ HubSetup.createHub = function(configs, file_path)
 		if type(catagories) == "table" then
 			for i, catagory in ipairs(catagories) do
 				self._catagories[catagory] = create(catagory)
-				if i == 1 then self:set_catagory(self._catagories[catagory]._main_f) end
+				if i == 1 then self:SetCatagory(self._catagories[catagory]._main_f) end
 			end
 		else
 			warn("Invalid catagory type. Expected table.")
@@ -274,10 +294,79 @@ HubSetup.createHub = function(configs, file_path)
 
 	end
 
-	return self
+	return self_main
 end
 
-function HubSetup:set_catagory(frame)
+function HubSetup:UpdateSettings()
+	local update = {}
+	for name, value in self._registered_configs_frames do
+		update[name] = v._value
+	end
+	writefile(self._file_path, HttpService:JSONEncode(update))
+end
+
+function HubSetup:ResetSettings()
+	for config_name, v in self._registered_configs_frames do
+		v._value = self._default_configs[config_name]
+		if v._built_in_func then v._built_in_func() end
+	end
+end
+
+local jsonAttempts = 0
+function HubSetup:LoadSaveFile()
+    if not isfolder("NickHub") then
+        makefolder("NickHub")
+    end
+
+    if not isfile(self._file_path) then
+        writefile(self._file_path, "")
+    end
+
+	local readSuccess, file = readfile(self._file_path, true)
+	if readSuccess then
+        print(`Load sucess: {file}`)
+		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
+			local success, response = pcall(function()
+				local json = HttpService:JSONDecode(file)
+				for key, defaultValue in pairs(self._default_configs) do
+					local value = json[key]
+					if not self._registered_configs_frames[key] then warn(`key: {key}, have not been registered`) continue end
+					if value == defaultValue then
+                        print(`UnChange | {key} | {value} | {typeof(value)}`)
+						self._registered_configs_frames[key]._value = defaultValue
+                    elseif value == nil and defaultValue ~= nil then
+                        print(`Table not exist | {key} | {value} | {typeof(value)}`)
+                        continue
+					else
+                        print(`Change | {key} | {value} | {typeof(value)}`)
+						self._registered_configs_frames[key]._value = value
+					end
+					if self._registered_configs_frames[key]._built_in_func then self._registered_configs_frames[key]._built_in_func() end
+				end
+			end)
+			if not success then
+				jsonAttempts = jsonAttempts + 1
+				warn("Save Json Error:", response)
+				warn("Overwriting Save File")
+				writefile(self._file_path, HttpService:JSONEncode(self._default_configs), true)
+				task.wait(1)
+				local dReadSuccess = readfile(self._file_path, true)
+				if dReadSuccess ~= nil and tostring(dReadSuccess):gsub("%s", "") ~= "" then
+					self:LoadSaveFile()
+				end
+			end
+		end
+	else
+		writefile(self._file_path, HttpService:JSONEncode(self._default_configs), true)
+		task.wait(1)
+		local dReadSuccess, file = readfile(self._file_path, true)
+		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
+			self:LoadSaveFile()
+		end
+	end
+end
+
+function HubSetup:SetCatagory(frame)
 	if self._current_catagory and self._current_catagory ~= frame then
 		self._current_catagory.Visible = false
 		self._current_catagory = frame
@@ -397,11 +486,12 @@ function HubSetup:CreateFrameWork()
 			end
 		end
 
-		-- update_setting()
+		self:UpdateSettings()
 		self._enable = false
 		self._DESTROYED = true
 
 		self._screen:Destroy()
+		self._folder:Destroy()
 
 		if self.OnClose then self.OnClose() end
 	end)
@@ -431,6 +521,11 @@ function HubSetup:CreateFrameWork()
 		end
 
 		self._frame_store = {}
+	end)
+
+	players.PlayerRemoving:Connect(function(player)
+		if player ~= plr then return end
+		self:UpdateSettings()
 	end)
 
 end
