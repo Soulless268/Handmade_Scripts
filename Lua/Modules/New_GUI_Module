@@ -51,6 +51,7 @@ function module:CreateTextBox()
 	self._button1.AnchorPoint = Vector2.new(1, .5)
 	self._button1.Position = UDim2.new(1, -25, .5, 0)
 	self._button1.Size = UDim2.new(.75,0,.5,0)
+	self._button1.TextScaled = true
 	return self
 end
 
@@ -61,7 +62,6 @@ function module:CreateSelector()
 	self._button1.Position = UDim2.new(1, -25, .5, 0)
 	self._button1.Size = UDim2.new(.75,0,.5,0)
 	self._button1.TextScaled = true
-	self._button1.TextWrapped = true
 	return self
 end
 
