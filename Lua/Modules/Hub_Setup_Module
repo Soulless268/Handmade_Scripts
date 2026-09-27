@@ -167,7 +167,6 @@ HubSetup.createHub = function(configs, file_path)
 				self_frame._left_frame = nil
 				self_frame._right_frame = nil
 				self_frame._func = nil
-				self_frame._built_in_func = nil
 
 				self_frame._truecolor = HubSetup.TrueColor
 				self_frame._falsecolor = HubSetup.FalseColor
@@ -246,33 +245,34 @@ HubSetup.createHub = function(configs, file_path)
 					self_frame._button1.Parent = self_frame._right_frame
 
 					if self_frame._button1:IsA("TextButton") or self_frame._button1:IsA("ImageButton") then
+
+						if not self_frame.BuiltInFunction then
+							function self_frame:BuiltInFunction()
+								if not self._value == nil then return end
+								self._button1.Text = self._value
+							end
+						end
+
 						self_frame._button1.Activated:Connect(function()
 							if typeof(self_frame._value) == "boolean" then
 								self_frame._value = not self_frame._value
 								self_frame._button1.BackgroundColor3 = if self_frame._value then self_frame._truecolor else self_frame._falsecolor
 							end
-							if self_frame._built_in_func then 
-								self_frame._built_in_func(self_frame._value)
-							else
-								self_frame._built_in_func = function(value)
-									if not value then return end
-									self_frame._button1.Text = value
-								end
-								self_frame._built_in_func(self_frame._value)
-							end
+							if self_frame.BuiltInFunction then self_frame:BuiltInFunction() end
 							if self_frame._func then self_frame._func(self_frame._value) end
 						end)
 					elseif self_frame._button1:IsA("TextBox") then
+
+						if not self_frame.BuiltInFunction then
+							function self_frame:BuiltInFunction()
+								if not self._value == nil then return end
+								self._button1.Text = self._value
+							end
+						end
+
 						self_frame._button1.FocusLost:Connect(function(enterPressed)
 							self_frame._value = self_frame._button1.Text
-							if self_frame._built_in_func and self_frame._value then self_frame._built_in_func(self_frame._value)
-							else
-								self_frame._built_in_func = function(value)
-									if not value then return end
-									self_frame._button1.Text = value
-								end
-								self_frame._built_in_func(self_frame._value)
-							end
+							if self_frame.BuiltInFunction then self_frame:BuiltInFunction() end
 							if self_frame._func then self_frame._func(self_frame._value, enterPressed) end
 						end)
 					end
@@ -318,14 +318,14 @@ function HubSetup:UpdateSettings()
 	end
 	writefile(self._file_path, HttpService:JSONEncode(update))
 	for name, v in self._registered_configs_frames do
-		if self._registered_configs_frames[name]._built_in_func then v._built_in_func(v._value) end
+		if v.BuiltInFunction then self._registered_configs_frames[name]:BuiltInFunction() end
 	end
 end
 
 function HubSetup:ResetSettings()
 	for name, v in self._registered_configs_frames do
 		v._value = self._default_configs[name]
-		if self._registered_configs_frames[name]._built_in_func then v._built_in_func(v._value) end
+		if v.BuiltInFunction then self._registered_configs_frames[name]:BuiltInFunction() end
 	end
 end
 
