@@ -68,7 +68,7 @@ HubSetup.createHub = function(configs, file_path)
 	self_main._DESTROYED = false
 	self_main._frame_store = {}
 	self_main._gui = {}
-	self_main._default_configs = configs or {}
+	self_main._default_configs = table.clone(configs or {})
 	self_main._registered_configs_frames = {}
 	self_main._autosave_delay = 10
 	self_main._autosave_c_dt = 0
@@ -78,8 +78,6 @@ HubSetup.createHub = function(configs, file_path)
 	self_main._runners = {}
 
 	self_main:CreateFrameWork()
-
-	if next(self_main._default_configs) then self_main:LoadSaveFile() end
 
 	self_main._runners.autosave = rs.RenderStepped:Connect(function(dt)
 		self_main._autosave_c_dt += dt
@@ -319,12 +317,15 @@ function HubSetup:UpdateSettings()
 		update[name] = v._value
 	end
 	writefile(self._file_path, HttpService:JSONEncode(update))
+	for name, v in self._registered_configs_frames do
+		if self._registered_configs_frames[name]._built_in_func then v._built_in_func(v._value) end
+	end
 end
 
 function HubSetup:ResetSettings()
-	for config_name, v in self._registered_configs_frames do
-		v._value = self._default_configs[config_name]
-		if v._built_in_func then v._built_in_func() end
+	for name, v in self._registered_configs_frames do
+		v._value = self._default_configs[name]
+		if self._registered_configs_frames[name]._built_in_func then v._built_in_func(v._value) end
 	end
 end
 
@@ -335,12 +336,22 @@ function HubSetup:LoadSaveFile()
     end
 
     if not isfile(self._file_path) then
-        writefile(self._file_path, "")
+        writefile(self._file_path, "{}")
     end
+	task.wait()
+	local readSuccess, file = nil, nil
+	local a, b = readfile(self._file_path, true)
 
-	local readSuccess, file = readfile(self._file_path, true)
+	if type(a) == "string" then
+		file = a
+		readSuccess = true
+	else
+		file = b
+		readSuccess = a
+	end
+
 	if readSuccess then
-        print(`Load sucess: {file}`)
+        print(`Load sucess: {readSuccess} | {file}`)
 		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
 			local success, response = pcall(function()
 				local json = HttpService:JSONDecode(file)
@@ -352,33 +363,31 @@ function HubSetup:LoadSaveFile()
 						self._registered_configs_frames[key]._value = defaultValue
                     elseif value == nil and defaultValue ~= nil then
                         print(`Table not exist | {key} | {value} | {typeof(value)}`)
-                        continue
 					else
                         print(`Change | {key} | {value} | {typeof(value)}`)
 						self._registered_configs_frames[key]._value = value
 					end
-					if self._registered_configs_frames[key]._built_in_func then self._registered_configs_frames[key]._built_in_func() end
 				end
+				self:UpdateSettings()
 			end)
 			if not success then
 				jsonAttempts = jsonAttempts + 1
 				warn("Save Json Error:", response)
 				warn("Overwriting Save File")
 				writefile(self._file_path, HttpService:JSONEncode(self._default_configs), true)
-				task.wait(1)
-				local dReadSuccess = readfile(self._file_path, true)
-				if dReadSuccess ~= nil and tostring(dReadSuccess):gsub("%s", "") ~= "" then
-					self:LoadSaveFile()
-				end
+				task.wait(.1)
+				self:LoadSaveFile()
 			end
-		end
-	else
-		writefile(self._file_path, HttpService:JSONEncode(self._default_configs), true)
-		task.wait(1)
-		local dReadSuccess, file = readfile(self._file_path, true)
-		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
+		else
+			writefile(self._file_path, HttpService:JSONEncode(self._default_configs), true)
+			task.wait(.1)
 			self:LoadSaveFile()
 		end
+	else
+		print(`Load not sucess: {readSuccess} | {file}`)
+		writefile(self._file_path, HttpService:JSONEncode(self._default_configs), true)
+		task.wait(1)
+		self:LoadSaveFile()
 	end
 end
 

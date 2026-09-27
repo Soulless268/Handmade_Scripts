@@ -30,6 +30,8 @@ function module:CreateToggle()
 	ui_stroke.Parent = self._button1
 	
 	self._built_in_func = function(value)
+		if value == nil then value = self._value end
+		self._button1.BackgroundColor3 = if value then self._truecolor else self._falsecolor
 		if not value then
 			circle.AnchorPoint = Vector2.new(0,0)
 			circle.Position = UDim2.new(0,0,0,0)
