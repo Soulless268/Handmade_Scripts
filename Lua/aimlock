@@ -1,4 +1,4 @@
--- Date Updated -- 8:25 PM -- 24/9/2026 -- DD/MM/YYYY
+-- Date Updated -- 7:10 PM -- 27/9/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/aimlock"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -21,7 +21,7 @@ local file_path = "NickHub/AIMLOCK.nh"
 
 print("aimlock: trying to run module")
 
-local gui_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/GUI_Module"))()
+local HubSetupModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Hub_Setup_Module"))()
 local paths_module = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Paths"))()
 local child_table = paths_module.child_table
 
@@ -37,33 +37,9 @@ end
 print("aimlock: successful run module")
 
 -----Settings-----
-configs = {
-	activeKeybind = "MouseButton3";
-	aimSmoothness = 0;
-	lockNPC = true;
-	lockPlayer = true;
-	lockTeam = true;
-	lockAfterDead = false;
-	detectionRadius = 50;
-	viewlineDistance = 2000;
-	predictMovement = false;
-
-	highlightType = "ESP";
-	showEspStats = true;
-}
-defaults = HttpService:JSONEncode(configs)
-
-local Logs = true
-local Minimized = false
-local DESTROYED = false
+local Logs = false
 local targetenemy
-local enable = false
 local targetpart = "Head" --Head, HumanoidRootPart, Torso
-local show_highlight_plr_folder = false
-local show_highlight_npc_folder = false
-local detect_through_wall = true
-local lock_nearest_enemy = false
-local view_direction_line = false
 local totalTime_prediction = 10
 local dt_prediction = 0.1
 local ignore_players = {}
@@ -75,32 +51,12 @@ local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
 -----Settings-----
 
-local runners = {}
-
 -----SetUp GUI-----
-local screen = Instance.new("ScreenGui")
-screen.Name = "NickHubAimLock"
-screen.ResetOnSpawn = false
-screen.Parent = coregui or plr.PlayerGui
-
-local highlight_folder = Instance.new("Folder")
-highlight_folder.Name = "HighlightsFolder"
-highlight_folder.Parent = screen
-
 local extrascreen
 
-local main_frame : Frame
-local catagories_frame : Frame
 local ignore_players_frame : Frame
-local aimlock_frame : Frame
-local settings_frame : Frame
-
-local show_button : TextButton
-local close_button : TextButton
-local minimize_button : TextButton
 
 local selectpartframe
-
 local radius
 
 --PreLoad Local Universals Function:
@@ -111,74 +67,6 @@ local function logs(text, w)
     else 
         print(text)
     end
-end
-
-function update_setting()
-	local update = {}
-	for name, value in pairs(configs) do
-		update[name] = value
-	end
-	writefile(file_path, HttpService:JSONEncode(update))
-end
-
-function reset_settings()
-    configs = table.clone(defaults_cofigs)
-    logs(`settings reset: {configs}`)
-
-    -- NormalDodgeDelayButton.Text = configs.normalDodgeDelay
-end
-
-local jsonAttempts = 0
-local function load_setting()
-
-    if not isfolder("NickHub") then
-        makefolder("NickHub")
-    end
-
-    if not isfile(file_path) then
-        writefile(file_path, "")
-    end
-
-	local readSuccess, file = readfile(file_path, true)
-	if readSuccess then
-        logs(`Load sucess: {file}`)
-		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
-			local success, response = pcall(function()
-				local json = HttpService:JSONDecode(file)
-				for key, defaultValue in pairs(configs) do
-					local value = json[key]
-					if value == defaultValue then
-                        logs(`UnChange | {key} | {value} | {typeof(value)}`)
-                        configs[key] = defaultValue
-                    elseif value == nil and defaultValue ~= nil then
-                        logs(`Table not exist | {key} | {value} | {typeof(value)}`)
-                        continue
-					else
-                        logs(`Change | {key} | {value} | {typeof(value)}`)
-                        configs[key] = value
-					end
-				end
-			end)
-			if not success then
-				jsonAttempts = jsonAttempts + 1
-				warn("Save Json Error:", response)
-				warn("Overwriting Save File")
-				writefile(file_path, defaults, true)
-				task.wait(1)
-				local dReadSuccess = readfile(file_path, true)
-				if dReadSuccess ~= nil and tostring(dReadSuccess):gsub("%s", "") ~= "" then
-					load_setting()
-				end
-			end
-		end
-	else
-		writefile(file_path, defaults, true)
-		task.wait(1)
-		local dReadSuccess, file = readfile(file_path, true)
-		if file ~= nil and tostring(file):gsub("%s", "") ~= "" then
-			load_setting()
-		end
-	end
 end
 
 local function getRoot(character)
@@ -248,9 +136,9 @@ local function finding_(mousePos, children)
 			local screenPos, onScreen = cam:WorldToViewportPoint(enemypos)
 			if onScreen then
 				local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
-				if dist <= configs.detectionRadius then
+				if dist <= radiustext._value then
 					table.insert(target_in_sight, enemy)
-				elseif targetenemy == enemy and dist >= configs.detectionRadius then
+				elseif targetenemy == enemy and dist >= radiustext._value then
 					targetenemy = nil
 				end
 			elseif targetenemy == enemy and not onScreen then
@@ -265,7 +153,7 @@ local function finding_(mousePos, children)
 		local enemyPos = enemy[targetpart].CFrame.Position
 		local playerPos = if char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
 
-		if not detect_through_wall then
+		if not DetectThroughWall._value then
 			local ray_param = RaycastParams.new()
 			ray_param.FilterType = Enum.RaycastFilterType.Exclude
 			ray_param.FilterDescendantsInstances = {char, enemy}
@@ -274,18 +162,18 @@ local function finding_(mousePos, children)
 		end
 
 		local enemyplr = players:GetPlayerFromCharacter(enemy)
-		if enemyplr and configs.lockPlayer then
-			if not configs.lockTeam and enemyplr.Team == plr.Team then return end
+		if enemyplr and LockPlayer._value then
+			if not LockTeam._value and enemyplr.Team == plr.Team then return end
 			if table.find(ignore_players, enemyplr.Name) then return end
 			targetenemy = enemy
 			return targetenemy
-		elseif not enemyplr and configs.lockNPC then
+		elseif not enemyplr and LockNPC._value then
 			targetenemy = enemy
 			return targetenemy
 		end
 	end
 
-	if lock_nearest_enemy then
+	if LockNearestEnemy._value then
 		local nearest = nil
 		local nearestDistance = math.huge
 
@@ -322,17 +210,17 @@ function lockon()
 	local target = CFrame.new(pos, enemypos)
 
 	local function pan_cam(pos)
-		if configs.aimSmoothness <= 0 then
+		if aimlock_smoothness_text._value <= 0 then
 			cam.CFrame = target
 		else
-			local alpha = 1 / (configs.aimSmoothness * 2 + 1) --alternative
-			--local alpha = math.exp(-configs.aimSmoothness) --alternative
-			-- local alpha = 1 / (configs.aimSmoothness + 1)  --main
+			local alpha = 1 / (aimlock_smoothness_text._value * 2 + 1) --alternative
+			--local alpha = math.exp(-aimlock_smoothness_text._value) --alternative
+			-- local alpha = 1 / (aimlock_smoothness_text._value + 1)  --main
 			cam.CFrame = cam.CFrame:Lerp(target, alpha)
 		end
 	end
 
-	if configs.predictMovement and hum then
+	if PredictMovement._value and hum then
 		local vel = targetenemy[targetpart].AssemblyLinearVelocity
 		local predict_pos = enemypos + vel * dt_prediction
 		pan_cam(CFrame.new(pos, predict_pos))
@@ -347,11 +235,11 @@ function AimLock()
 	local c_plr = paths_module.get_child_folder("plr_folder")
 	local c_npc = paths_module.get_child_folder("npc_folder")
 
-	if configs.lockNPC then
+	if LockNPC._value then
 		finding_(mousePos, c_npc)
 	end
 
-	if configs.lockPlayer then
+	if LockPlayer._value then
 		finding_(mousePos, c_plr)
 	end
 
@@ -363,251 +251,104 @@ local function getMousePosition()
 	return x, y
 end
 
-load_setting()
+configs = {
+	activeKeybind = "MouseButton3";
+	aimSmoothness = 1;
+	lockNPC = true;
+	lockPlayer = true;
+	lockTeam = true;
+	lockFriends = true;
+	lockAfterDead = false;
+	detectionRadius = 50;
+	viewlineDistance = 2000;
+	predictMovement = false;
+}
+
+hub = HubSetupModule.createHub(configs, file_path)
+hub._main_frame.Position = UDim2.new(1, -1, 0.15, 0)
+
+local highlight_folder = Instance.new("Folder")
+highlight_folder.Name = "HighlightsFolder"
+highlight_folder.Parent = hub._screen
+
+local catagories = {
+	"AimLock";
+	"ESP";
+	"Players List";
+	"NPCs List";
+	"Extra";
+	"Settings";
+}
+hub:CreateCatagory(catagories)
 
 do
-	main_frame = Instance.new("Frame")
-	main_frame.Draggable = true
-	main_frame.Name = "Main"
-	main_frame.Active = true
-	main_frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-	main_frame.AnchorPoint = Vector2.new(1, 0)
-	main_frame.Position = UDim2.new(1, 0, 0.15, 0)
-	main_frame.Size = UDim2.new(0.25, 0, 0.4, 0)
-	main_frame.Parent = screen
-	gui_module.UiStroke(main_frame)
+	LockNPC = hub._catagories.AimLock:CreateFrame("Lock Npc", "Lock Npc", true):CreateToggle():RegisterSave("lockNPC")
 
-	back_ground_frame = Instance.new("ImageLabel")
-	back_ground_frame.BackgroundTransparency = 1
-	back_ground_frame.ImageTransparency = .75
-	back_ground_frame.Image = background_image_id
-	back_ground_frame.Position = UDim2.new(0, 0, 0.1, 0)
-	back_ground_frame.Size = UDim2.new(1,0,0.9,0)
-	back_ground_frame.Parent = main_frame
+	LockPlayer = hub._catagories.AimLock:CreateFrame("Lock Player", "Lock Player", true):CreateToggle():RegisterSave("lockPlayer")
 
-	do
+	LockTeam = hub._catagories.AimLock:CreateFrame("Lock Team", "Lock Team", true):CreateToggle():RegisterSave("lockTeam")
 
-		close_button = Instance.new("TextButton")
-		close_button.Text = "X"
-		close_button.AnchorPoint = Vector2.new(1,0)
-		close_button.BackgroundTransparency = 1
-		close_button.TextScaled = true
-		close_button.TextColor3 = Color3.fromRGB(255, 170, 0)
-		close_button.Position = UDim2.new(1,0,0,0)
-		close_button.Size = UDim2.new(0.05, 0,0.1, 0)
-		close_button.Parent = main_frame
+	LockFriends = hub._catagories.AimLock:CreateFrame("Lock Friends", "Lock your friends", true):CreateToggle():RegisterSave("lockFriends")
 
-		minimize_button = Instance.new("TextButton")
-		minimize_button.Text = "-"
-		minimize_button.AnchorPoint = Vector2.new(1,0)
-		minimize_button.BackgroundTransparency = 1
-		minimize_button.TextScaled = true
-		minimize_button.TextColor3 = Color3.fromRGB(255, 170, 0)
-		minimize_button.Position = UDim2.new(.95,0,0,0)
-		minimize_button.Size = UDim2.new(0.1,0,0.1,0)
-		minimize_button.Parent = main_frame
+	SelectPart = hub._catagories.AimLock:CreateFrame("Select Part", "Select Part", "Choose"):CreateButton()
 
-		aimlock_frame = Instance.new("ScrollingFrame")
-		aimlock_frame.Active = true
-		aimlock_frame.Visible = false
-		aimlock_frame.BackgroundTransparency = .25
-		aimlock_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-		aimlock_frame.Position = UDim2.new(0.25, 0, 0.1, 0)
-		aimlock_frame.Size = UDim2.new(.75,0,0.9,0)
-		aimlock_frame.CanvasSize = UDim2.new(0,0,0,0)
-		aimlock_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		aimlock_frame.ScrollBarThickness = 0
-		aimlock_frame.Parent = main_frame
-		gui_module.UiStroke(aimlock_frame)
+	PredictMovement = hub._catagories.AimLock:CreateFrame("Predict Movement", "Predict Movement", false):CreateToggle():RegisterSave("predictMovement")
 
-		do
-			local grid = Instance.new("UIGridLayout")
-			grid.CellPadding = UDim2.new(0,0,0,1)
-			grid.CellSize = UDim2.new(1,0,.15,0)
-			grid.FillDirection = "Horizontal"
-			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			grid.VerticalAlignment = Enum.VerticalAlignment.Top
-			grid.Parent = aimlock_frame
+	DetectThroughWall = hub._catagories.AimLock:CreateFrame("Detect Through Wall", "e", true):CreateToggle()
 
-			colorstatus = gui_module.create_frame(aimlock_frame, "Status", nil, enable)
+	ShowViewDirectionLine = hub._catagories.AimLock:CreateFrame("Show the line in Player Head", "can know what player is looking at right now", false):CreateToggle()
 
-			npclockbutton = gui_module.create_frame(aimlock_frame, "Lock Npc", "Lock Npc", configs.lockNPC)
+	LockNearestEnemy = hub._catagories.AimLock:CreateFrame("Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", false):CreateToggle()
 
-			plrlockbutton = gui_module.create_frame(aimlock_frame, "Lock Player", "Lock Player", configs.lockPlayer)
+	-----ESP-----
 
-			teamlockbutton = gui_module.create_frame(aimlock_frame, "Lock Team", "Lock Team", configs.lockTeam)
+	ESPPlayer = hub._catagories.ESP:CreateFrame("ESP Players", "Player Folder", false):CreateToggle()
 
-			selectpartbutton = gui_module.create_frame(aimlock_frame, "Select Part", "Select Part", "Click")
+	ESPNpcs = hub._catagories.ESP:CreateFrame("ESP NPC", "NPC Folder", false):CreateToggle()
 
-			predictmovementbutton = gui_module.create_frame(aimlock_frame, "Predict Movement", "Predict Movement", configs.predictMovement)
+	hub._catagories.ESP:CreateDivider("ESP Type")
 
-			detectthroughwallbutton = gui_module.create_frame(aimlock_frame, "Detect Through Wall", "e", detect_through_wall)
+	ShowEspStatsButton = hub._catagories.ESP:CreateFrame("Show Esp stats", nil, false):CreateToggle()
 
-			ShowViewDirectionLineButton = gui_module.create_frame(aimlock_frame, "Show the line in Player Head", "can know what player is looking at right now", view_direction_line)
+	EspNormalTypeButton = hub._catagories.ESP:CreateFrame("Normal Esp", nil, true):CreateToggle()
+	
+	EspBoxTypeButton = hub._catagories.ESP:CreateFrame("Box Esp", nil, false):CreateToggle()
 
-			lock_nearest_enemy_button = gui_module.create_frame(aimlock_frame, "Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", lock_nearest_enemy)
+	-----Settings-----
 
-			show_highlight_npc_folder_button, show_highlight_plr_folder_button = gui_module.create_frame(aimlock_frame, "Show Highlight", "Player Folder | NPC Folder", false, false)
+	ReloadButton = hub._catagories.Settings:CreateFrame("Reload", "Reload"):CreateButton()
 
-		end
+	radiustext = hub._catagories.Settings:CreateFrame("Radius", "Radius"):CreateTextBox():RegisterSave("detectionRadius")
 
-		ignore_players_frame = Instance.new("ScrollingFrame")
-		ignore_players_frame.Active = true
-		ignore_players_frame.Visible = false
-		ignore_players_frame.BackgroundTransparency = .25
-		ignore_players_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-		ignore_players_frame.Position = UDim2.new(0.25, 0, 0.1, 0)
-		ignore_players_frame.Size = UDim2.new(.75,0,0.9,0)
-		ignore_players_frame.CanvasSize = UDim2.new(0,0,0,0)
-		ignore_players_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		ignore_players_frame.ScrollBarThickness = 0
-		ignore_players_frame.Parent = main_frame
-		gui_module.UiStroke(ignore_players_frame)
+	aimlock_smoothness_text = hub._catagories.Settings:CreateFrame("Smoothness", "Smoothness of the aim 0-5"):CreateTextBox():RegisterSave("aimSmoothness")
 
-		do
-			local grid = Instance.new("UIGridLayout")
-			grid.CellPadding = UDim2.new(0,0,0,1)
-			grid.CellSize = UDim2.new(1,0,.15,0)
-			grid.FillDirection = "Horizontal"
-			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			grid.VerticalAlignment = Enum.VerticalAlignment.Top
-			grid.Parent = ignore_players_frame
+	ViewLineDistanceText = hub._catagories.Settings:CreateFrame("View line Distance", "the Distance of View line"):CreateTextBox():RegisterSave("viewlineDistance")
 
-		end
+	lockafterdeadbutton = hub._catagories.Settings:CreateFrame("Lock after dead", "Lock after dead"):CreateToggle():RegisterSave("lockAfterDead")
 
-		PlayersListFrame = Instance.new("ScrollingFrame")
-		PlayersListFrame.Active = true
-		PlayersListFrame.Visible = false
-		PlayersListFrame.BackgroundTransparency = .25
-		PlayersListFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-		PlayersListFrame.Position = UDim2.new(0.25, 0, 0.1, 0)
-		PlayersListFrame.Size = UDim2.new(.75,0,0.9,0)
-		PlayersListFrame.CanvasSize = UDim2.new(0,0,0,0)
-		PlayersListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		PlayersListFrame.ScrollBarThickness = 0
-		PlayersListFrame.Parent = main_frame
-		gui_module.UiStroke(PlayersListFrame)
+	ChangeKeybindButton = hub._catagories.Settings:CreateFrame("Keybind", "Keybind that activate your aimlock"):CreateSelector():RegisterSave("activeKeybind")
 
-		do
-			local grid = Instance.new("UIGridLayout")
-			grid.CellPadding = UDim2.new(0,0,0,1)
-			grid.CellSize = UDim2.new(1,0,.15,0)
-			grid.FillDirection = "Horizontal"
-			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			grid.VerticalAlignment = Enum.VerticalAlignment.Top
-			grid.Parent = PlayersListFrame
+	plr_folder_path = hub._catagories.Settings:CreateFrame("Player Path", "Path", child_table.plr_folder.path:GetFullName()):CreateTextBox()
+	plr_folder_path._button1.ClearTextOnFocus = false
 
-		end
+	npc_folder_path = hub._catagories.Settings:CreateFrame("NPC Path", "Path", child_table.npc_folder.path:GetFullName()):CreateTextBox()
+	npc_folder_path._button1.ClearTextOnFocus = false
 
-		NPCsListFrame = Instance.new("ScrollingFrame")
-		NPCsListFrame.Active = true
-		NPCsListFrame.Visible = false
-		NPCsListFrame.BackgroundTransparency = .25
-		NPCsListFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-		NPCsListFrame.Position = UDim2.new(0.25, 0, 0.1, 0)
-		NPCsListFrame.Size = UDim2.new(.75,0,0.9,0)
-		NPCsListFrame.CanvasSize = UDim2.new(0,0,0,0)
-		NPCsListFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		NPCsListFrame.ScrollBarThickness = 0
-		NPCsListFrame.Parent = main_frame
-		gui_module.UiStroke(NPCsListFrame)
+	SaveSettingsButton = hub._catagories.Settings:CreateFrame("Save Setting", "Save the Setting to file"):CreateButton()
 
-		do
-			local grid = Instance.new("UIGridLayout")
-			grid.CellPadding = UDim2.new(0,0,0,1)
-			grid.CellSize = UDim2.new(1,0,.15,0)
-			grid.FillDirection = "Horizontal"
-			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			grid.VerticalAlignment = Enum.VerticalAlignment.Top
-			grid.Parent = NPCsListFrame
+end
 
-		end
+hub:LoadSaveFile()
 
-		settings_frame = Instance.new("ScrollingFrame")
-		settings_frame.Active = true
-		settings_frame.Visible = false
-		settings_frame.BackgroundTransparency = .25
-		settings_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-		settings_frame.Position = UDim2.new(0.25, 0, 0.1, 0)
-		settings_frame.Size = UDim2.new(.75,0,0.9,0)
-		settings_frame.CanvasSize = UDim2.new(0,0,0,0)
-		settings_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		settings_frame.ScrollBarThickness = 0
-		settings_frame.Parent = main_frame
-		gui_module.UiStroke(settings_frame)
-
-		do
-			local grid = Instance.new("UIGridLayout")
-			grid.CellPadding = UDim2.new(0,0,0,1)
-			grid.CellSize = UDim2.new(1,0,.15,0)
-			grid.FillDirection = "Horizontal"
-			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			grid.VerticalAlignment = Enum.VerticalAlignment.Top
-			grid.Parent = settings_frame
-
-			ReloadButton = gui_module.create_frame(settings_frame, "Reload", "Reload", "Click")
-
-			radiustext = gui_module.create_frame(settings_frame, "Radius", "Radius", configs.detectionRadius)
-
-			aimlock_smoothness_text = gui_module.create_frame(settings_frame, "Smoothness", "Smoothness of the aim 0-5", configs.aimSmoothness)
-			
-			ViewLineDistanceText = gui_module.create_frame(settings_frame, "View line Distance", "the Distance of View line", configs.viewlineDistance)
-			
-			lockafterdeadbutton = gui_module.create_frame(settings_frame, "Lock after dead", "Lock after dead", configs.lockAfterDead)
-
-			HighlightTypeButton = gui_module.create_frame(settings_frame, "Hightlight Type", "Change your hightlight type", "Click")
-			HighlightTypeButton.Text = configs.highlightType
-
-			ChangeKeybindButton = gui_module.create_frame(settings_frame, "Keybind", "Keybind that activate your aimlock", "Click")
-			ChangeKeybindButton.Text = configs.activeKeybind
-
-			plr_folder_path = gui_module.create_frame(settings_frame, "Player Path", "Path", child_table.plr_folder.path:GetFullName())
-			plr_folder_path.ClearTextOnFocus = false
-
-			npc_folder_path = gui_module.create_frame(settings_frame, "NPC Path", "Path", child_table.npc_folder.path:GetFullName())
-			npc_folder_path.ClearTextOnFocus = false
-
-			SaveSettingsButton = gui_module.create_frame(settings_frame, "Save Setting", "Save the Setting to file", "Click")
-
-		end
-
-		catagories_frame = Instance.new("ScrollingFrame")
-		catagories_frame.Active = true
-		catagories_frame.BackgroundTransparency = .25
-		catagories_frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-		catagories_frame.Position = UDim2.new(0, 0, 0.1, 0)
-		catagories_frame.Size = UDim2.new(.25,0,0.9,0)
-		catagories_frame.CanvasSize = UDim2.new(0,0,0,0)
-		catagories_frame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-		catagories_frame.ScrollBarThickness = 0
-		catagories_frame.Parent = main_frame
-		gui_module.UiStroke(catagories_frame)
-
-		do
-			local grid = Instance.new("UIGridLayout")
-			grid.CellPadding = UDim2.new(0,0,0,1)
-			grid.CellSize = UDim2.new(1,0,.15,0)
-			grid.FillDirection = "Horizontal"
-			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			grid.VerticalAlignment = Enum.VerticalAlignment.Top
-			grid.Parent = catagories_frame
-
-			gui_module.current_catagory = aimlock_frame
-
-			gui_module.create_button_catagory(catagories_frame, "AimLock", aimlock_frame)
-
-			gui_module.create_button_catagory(catagories_frame, "Ignore Players", ignore_players_frame)
-
-			gui_module.create_button_catagory(catagories_frame, "Players List", PlayersListFrame)
-
-			gui_module.create_button_catagory(catagories_frame, "NPCs List", NPCsListFrame)
-
-			gui_module.create_button_catagory(catagories_frame, "Settings", settings_frame)
-
-		end
-
+for _,v in hub._folder:GetDescendants() do
+	if v:IsA("TextButton") or v:IsA("TextLabel") or v:IsA("TextBox") then
+		v.Font = Enum.Font.TitilliumWeb
 	end
+end
 
+task.wait()
+
+do
 	selectpartframe = Instance.new("Frame")
 	selectpartframe.Draggable = true
 	selectpartframe.Active = true
@@ -615,7 +356,7 @@ do
 	selectpartframe.BackgroundColor3 = Color3.fromRGB(49, 42, 39)
 	selectpartframe.Position = UDim2.new(0.25, 0, 0.15, 0)
 	selectpartframe.Size = UDim2.new(.2,0,0.15,0)
-	selectpartframe.Parent = screen
+	selectpartframe.Parent = hub._screen
 
 	do
 		local grid = Instance.new("UIGridLayout")
@@ -634,28 +375,18 @@ do
 
 	do
 		radius = Instance.new("Frame")
-		radius.Size = UDim2.new(0, configs.detectionRadius*2, 0, configs.detectionRadius*2)
+		radius.Size = UDim2.new(0, radiustext._value*2, 0, radiustext._value*2)
 		radius.BackgroundTransparency = .9
 		radius.Parent = extrascreen
 
-		do
-			gui_module.UiCorner(radius, UDim.new(1,0))
+		do	
+			HubSetupModule.UiCorner(radius, UDim.new(1,0))
 
-			local stroke = gui_module.UiStroke(radius)
+			local stroke = HubSetupModule.UiStroke(radius)
 			stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual
 			stroke.LineJoinMode = Enum.LineJoinMode.Round
 		end
 	end
-
-	show_button = Instance.new("TextButton")
-	show_button.Active = true
-	show_button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-	show_button.TextColor3 = Color3.fromRGB(255, 170, 0)
-	show_button.Size = UDim2.new(0.05, 0, 0.085, 0)
-	show_button.Text = "Show"
-	show_button.Visible = false
-	show_button.Parent = screen
-	gui_module.UiCorner(show_button, UDim.new(0.1,0))
 
 end
 
@@ -668,17 +399,17 @@ for i,v in pairs(bodypart) do
 	partbutton.Activated:Connect(function()
 		selectpartframe.Visible = false
 		targetpart = v
-		selectpartbutton.Text = targetpart
+		SelectPart._button1.Text = targetpart
 	end)
 end
-selectpartbutton.Text = targetpart
+SelectPart._button1.Text = targetpart
 
 local function create_plr_b(p)
 	local partbutton = Instance.new("TextButton")
 	partbutton.Name = p.Name
 	partbutton.Text = p.Name
 	partbutton.BackgroundColor3 = falsecolor
-	partbutton.Parent = ignore_players_frame
+	-- partbutton.Parent = ignore_players_frame
 	partbutton.Activated:Connect(function()
 		if table.find(ignore_players, p.Name) then
 			table.remove(ignore_players, table.find(ignore_players, p.Name))
@@ -705,120 +436,38 @@ players.PlayerRemoving:Connect(function(player)
 	if table.find(ignore_players, player.Name) then
 		table.remove(ignore_players, table.find(ignore_players, player.Name))
 	end
-	local partbutton = ignore_players_frame:FindFirstChild(player.Name)
-	if partbutton then
-		partbutton:Destroy()
-	end
+	-- local partbutton = ignore_players_frame:FindFirstChild(player.Name)
+	-- if partbutton then
+	-- 	partbutton:Destroy()
+	-- end
 end)
 -----Startup-----
 
 -----Function-----
-close_button.Activated:Connect(function()
 
-	for i,v in pairs(runners) do
-		if v then
-			v:Disconnect()
-		end
-	end
-
-	update_setting()
-	enable = false
-	DESTROYED = true
-
-	screen:Destroy()
-	if directionline_folder then directionline_folder:Destroy() end
-	extrascreen:Destroy()
-end)
-
-minimize_button.MouseButton1Click:Connect(function()
-	Minimized = true
-	main_frame.Visible = false
-	show_button.Visible = true
-
-	for _,v in pairs(screen:GetChildren()) do
-		if v == main_frame then continue end
-		if v == show_button then continue end
-		if frame_store[v] then continue end
-		if not v:IsA("Frame") then continue end
-		frame_store[v] = v.Visible
-		v.Visible = false
+radiustext:OnFunction(function(value)
+	if typeof(tonumber(value)) == "number" then
+		radiustext._value = tonumber(value)
+		radius.Visible = if radiustext._value <= 0 then false else true
+		radius.Size = UDim2.new(0, radiustext._value*2, 0, radiustext._value*2)
 	end
 end)
 
-show_button.Activated:Connect(function()
-	Minimized = false
-	main_frame.Visible = true
-	show_button.Visible = false
-
-	for i,v in pairs(frame_store) do
-		i.Visible = v
-	end
-
-	frame_store = {}
-end)
-
-radiustext.FocusLost:Connect(function()
-	if typeof(tonumber(radiustext.Text)) == "number" then
-		configs.detectionRadius = tonumber(radiustext.Text)
-		radius.Visible = if configs.detectionRadius <= 0 then false else true
-		radius.Size = UDim2.new(0, configs.detectionRadius*2, 0, configs.detectionRadius*2)
+aimlock_smoothness_text:OnFunction(function(value)
+	if typeof(tonumber(value)) == "number" then
+		aimlock_smoothness_text._value = tonumber(value)
 	end
 end)
 
-aimlock_smoothness_text.FocusLost:Connect(function()
-	if typeof(tonumber(aimlock_smoothness_text.Text)) == "number" then
-		configs.aimSmoothness = tonumber(aimlock_smoothness_text.Text)
+ViewLineDistanceText:OnFunction(function(value)
+	if typeof(tonumber(value)) == "number" then
+		ViewLineDistanceText._value = tonumber(value)
 	end
 end)
 
-ViewLineDistanceText.FocusLost:Connect(function()
-	if typeof(tonumber(ViewLineDistanceText.Text)) == "number" then
-		configs.viewlineDistance = tonumber(ViewLineDistanceText.Text)
-	end
-end)
-
-selectpartbutton.Activated:Connect(function()
-	selectpartframe.Visible = not selectpartframe.Visible
-end)
-
-plrlockbutton.Activated:Connect(function()
-	configs.lockPlayer = not configs.lockPlayer
-	plrlockbutton.BackgroundColor3 = if configs.lockPlayer then truecolor else falsecolor
-end)
-
-teamlockbutton.Activated:Connect(function()
-	configs.lockTeam = not configs.lockTeam
-	teamlockbutton.BackgroundColor3 = if configs.lockTeam then truecolor else falsecolor
-end)
-
-predictmovementbutton.Activated:Connect(function()
-	configs.predictMovement = not configs.predictMovement
-	predictmovementbutton.BackgroundColor3 = if configs.predictMovement then truecolor else falsecolor
-end)
-
-npclockbutton.Activated:Connect(function()
-	configs.lockNPC = not configs.lockNPC
-	npclockbutton.BackgroundColor3 = if configs.lockNPC then truecolor else falsecolor
-end)
-
-lockafterdeadbutton.Activated:Connect(function()
-	configs.lockAfterDead = not configs.lockAfterDead
-	lockafterdeadbutton.BackgroundColor3 = if configs.lockAfterDead then truecolor else falsecolor
-end)
-
-detectthroughwallbutton.Activated:Connect(function()
-	detect_through_wall = not detect_through_wall
-	detectthroughwallbutton.BackgroundColor3 = if detect_through_wall then truecolor else falsecolor
-end)
-
-lock_nearest_enemy_button.Activated:Connect(function()
-	lock_nearest_enemy = not lock_nearest_enemy
-	lock_nearest_enemy_button.BackgroundColor3 = if lock_nearest_enemy then truecolor else falsecolor
-end)
-
-ChangeKeybindButton.Activated:Connect(function()
-	if runners.ChooseKeybind then return end
-	ChangeKeybindButton.BackgroundColor3 = truecolor
+ChangeKeybindButton:OnFunction(function(value)
+	if hub._runners.ChooseKeybind then return end
+	ChangeKeybindButton._button1.BackgroundColor3 = truecolor
 	
 	local allow = {
 		Enum.UserInputType.Keyboard,
@@ -827,38 +476,29 @@ ChangeKeybindButton.Activated:Connect(function()
 		Enum.UserInputType.MouseButton3
 	}
 
-	runners.ChooseKeybind = uis.InputBegan:Connect(function(input, gpe)
+	hub._runners.ChooseKeybind = uis.InputBegan:Connect(function(input, gpe)
 		if gpe then return end
 		if not table.find(allow, input.UserInputType) then return end
 		if input.KeyCode == Enum.KeyCode.None and input.UserInputType == Enum.UserInputType.Keyboard then return end
 
+		local key
+
 		if input.KeyCode ~= Enum.KeyCode.None then
-			configs.activeKeybind = uis:GetStringForKeyCode(input.KeyCode)
+			key = uis:GetStringForKeyCode(input.KeyCode)
 		else
-			configs.activeKeybind = input.UserInputType.Name
+			key = input.UserInputType.Name
 		end
-		ChangeKeybindButton.Text = configs.activeKeybind
-		if runners.ChooseKeybind then
-			ChangeKeybindButton.BackgroundColor3 = falsecolor
-			runners.ChooseKeybind:Disconnect()
-			runners.ChooseKeybind = nil
+		ChangeKeybindButton._value = key
+		ChangeKeybindButton._button1.Text = ChangeKeybindButton._value
+		if hub._runners.ChooseKeybind then
+			ChangeKeybindButton._button1.BackgroundColor3 = falsecolor
+			hub._runners.ChooseKeybind:Disconnect()
+			hub._runners.ChooseKeybind = nil
 		end
 	end)
 end)
 
-HighlightTypeButton.Activated:Connect(function()
-	if configs.highlightType == "ESP" then
-		configs.highlightType = "Box"
-	elseif configs.highlightType == "Box" then
-		configs.highlightType = "ESP"
-	end
-	HighlightTypeButton.Text = configs.highlightType
-end)
-
-ShowViewDirectionLineButton.Activated:Connect(function()
-	view_direction_line = not view_direction_line
-	ShowViewDirectionLineButton.BackgroundColor3 = if view_direction_line then truecolor else falsecolor
-
+ShowViewDirectionLine:OnFunction(function(value)
 	if not cam:FindFirstChild("DirectionLineFolder") then
 		directionline_folder = Instance.new("Folder")
 		directionline_folder.Name = "DirectionLineFolder"
@@ -920,7 +560,7 @@ ShowViewDirectionLineButton.Activated:Connect(function()
 
 		local connection
 		connection = rs.Heartbeat:Connect(function()
-			if not adornee or not head.Parent or not startAttachment.Parent or DESTROYED then
+			if not adornee or not head.Parent or not startAttachment.Parent or hub._DESTROYED then
 
 				if connection then
 					connection:Disconnect()
@@ -940,18 +580,18 @@ ShowViewDirectionLineButton.Activated:Connect(function()
 			end
 
 			local direction = head.CFrame.LookVector
-			endPart.Position = head.Position + direction * configs.viewlineDistance
+			endPart.Position = head.Position + direction * ViewLineDistanceText._value
 		end)
 
 		directionlines_store[adornee] = {endpart = endPart, beam = beam, connection = connection}
 	end
 
-	if view_direction_line then
+	if value then
 		for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
 			if not players:GetPlayerFromCharacter(v) then continue end
 			add_dir_line(v)
 		end
-		runners.runner_direction_line = child_table.plr_folder.path.ChildAdded:Connect(function(child)
+		hub._runners.runner_direction_line = child_table.plr_folder.path.ChildAdded:Connect(function(child)
 			if not players:GetPlayerFromCharacter(child) then return end
 			if not directionlines_store[child] then add_dir_line(child) end
 		end)
@@ -959,11 +599,10 @@ ShowViewDirectionLineButton.Activated:Connect(function()
 		for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
 			remove_dir_line(v)
 		end
-		if runners.runner_highlight_plr then
-			runners.runner_highlight_plr:Disconnect()
+		if hub._runners.runner_highlight_plr then
+			hub._runners.runner_highlight_plr:Disconnect()
 		end
 	end
-
 end)
 
 local function create_highlight(adornee, parent)
@@ -971,11 +610,13 @@ local function create_highlight(adornee, parent)
 	if plr == isplr then return end
 
 	local new
-	if configs.highlightType == "ESP" then
+	if EspNormalTypeButton._value then
 		new = Instance.new("Highlight")
 		new.FillTransparency = 1
 		new.FillColor = Color3.new(1, 1, 1)
-	elseif configs.highlightType == "Box" then
+	end
+
+	if EspBoxTypeButton._value then
 		new = Instance.new("BillboardGui")
 		new.AlwaysOnTop = true
 		new.Size = UDim2.new(5,0,7,0)
@@ -1004,7 +645,7 @@ local function create_highlight(adornee, parent)
 			local BillboardGui = Instance.new("BillboardGui")
 			local TextLabel = Instance.new("TextLabel")
 
-			if configs.showEspStats then
+			if ShowEspStatsButton._value then
 				BillboardGui.Adornee = adornee.Head
 				BillboardGui.Name = isplr.Name
 				BillboardGui.Parent = new
@@ -1030,7 +671,7 @@ local function create_highlight(adornee, parent)
 			local espLoopFunc
 
 			local function espLoop()
-				if highlights_store[adornee] and configs.showEspStats then
+				if highlights_store[adornee] and ShowEspStatsButton._value then
 					if adornee:FindFirstChildOfClass("Humanoid") and getRoot(adornee) and character_available() then
 						local pos = math.floor((hrp.Position - getRoot(adornee).Position).magnitude)
 						local mult = 10^(1 or 0)
@@ -1038,7 +679,7 @@ local function create_highlight(adornee, parent)
 						TextLabel.Text = 'Name: '..isplr.Name..' | Health: '..math..' | Studs: '..pos
 					end
 					local teamcolor = Color3.new(1, 1, 1)
-					if not configs.lockTeam then
+					if not LockTeam._value then
 						if isplr.TeamColor == plr.TeamColor then
 							teamcolor = Color3.new(0, 1, 0)	
 						else
@@ -1061,6 +702,20 @@ local function create_highlight(adornee, parent)
 		end
 	end)
 	
+	local checking
+	local c_time = 10
+	checking = rs.RenderStepped:Connect(function(dt)
+		c_time += dt
+		if c_time < 10 then return end
+		c_time = 0
+
+		if not adornee:IsDescendantOf(workspace) then
+			new:Destroy()
+			highlights_store[adornee] = nil
+		end
+
+	end)
+
 	adornee.Destroying:Once(function()
 		new:Destroy()
 		highlights_store[adornee] = nil
@@ -1074,21 +729,19 @@ local function clear_nil_highlight()
 	end
 end
 
-show_highlight_plr_folder_button.Activated:Connect(function()
+ESPPlayer:OnFunction(function(value)
 	logs("highlight in player folder")
-	show_highlight_plr_folder = not show_highlight_plr_folder
-	show_highlight_plr_folder_button.BackgroundColor3 = if show_highlight_plr_folder then truecolor else falsecolor
 
 	local hl = if highlights_store[child_table.plr_folder.path] then highlights_store[child_table.plr_folder.path] else nil
 	clear_nil_highlight()
 
-	if show_highlight_plr_folder then
+	if value then
 		if child_table.plr_folder.path:IsA("Folder") or child_table.plr_folder.path == workspace then
 			for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
 				if not players:GetPlayerFromCharacter(v) then continue end
 				create_highlight(v)
 			end
-			runners.runner_highlight_plr = child_table.plr_folder.path.ChildAdded:Connect(function(child)
+			hub._runners.runner_highlight_plr = child_table.plr_folder.path.ChildAdded:Connect(function(child)
 				if not highlights_store[child] then create_highlight(child) end
 			end)
 		else
@@ -1102,28 +755,26 @@ show_highlight_plr_folder_button.Activated:Connect(function()
 			for _,c in pairs(paths_module.get_child_folder("plr_folder")) do
 				if highlights_store[c] then highlights_store[c]:Destroy() end
 			end
-			if runners.runner_highlight_plr then
-				runners.runner_highlight_plr:Disconnect()
+			if hub._runners.runner_highlight_plr then
+				hub._runners.runner_highlight_plr:Disconnect()
 			end
 		end
 	end
 end)
 
-show_highlight_npc_folder_button.Activated:Connect(function()
+ESPNpcs:OnFunction(function(value)
 	logs("highlight in npc folder")
-	show_highlight_npc_folder = not show_highlight_npc_folder
-	show_highlight_npc_folder_button.BackgroundColor3 = if show_highlight_npc_folder then truecolor else falsecolor
 
 	local hl = if highlights_store[child_table.npc_folder.path] then highlights_store[child_table.npc_folder.path] else nil
 	clear_nil_highlight()
 
-	if show_highlight_npc_folder then
+	if value then
 		if child_table.npc_folder.path:IsA("Folder") or child_table.npc_folder.path == workspace then
 			for _,v in pairs(paths_module.get_child_folder("npc_folder")) do
 				if players:GetPlayerFromCharacter(v) then continue end
 				create_highlight(v)
 			end
-			runners.runner_highlight_npc = child_table.npc_folder.path.ChildAdded:Connect(function(child)
+			hub._runners.runner_highlight_npc = child_table.npc_folder.path.ChildAdded:Connect(function(child)
 				if not highlights_store[child] then create_highlight(child) end
 			end)
 		else
@@ -1137,8 +788,8 @@ show_highlight_npc_folder_button.Activated:Connect(function()
 			for _,c in pairs(paths_module.get_child_folder("npc_folder")) do
 				if highlights_store[c] then highlights_store[c]:Destroy() end
 			end
-			if runners.runner_highlight_npc then
-				runners.runner_highlight_npc:Disconnect()
+			if hub._runners.runner_highlight_npc then
+				hub._runners.runner_highlight_npc:Disconnect()
 			end
 		end
 	end
@@ -1198,7 +849,7 @@ local function make_detect_function()
 		end)
 end
 
-plr_folder_path.FocusLost:Connect(function(enterPressed)
+plr_folder_path:OnFunction(function(value)
 	local text_parts = string.split(plr_folder_path.Text, ".")
 	if text_parts[1] == "Workspace" or text_parts[1] == "workspace" then text_parts[1] = workspace end
 	local manual_path = paths_module.safeFind(text_parts[1], nil, text_parts[2], text_parts[3], text_parts[4], text_parts[5], text_parts[6])
@@ -1208,10 +859,10 @@ plr_folder_path.FocusLost:Connect(function(enterPressed)
 		warn("found path for Players: ", child_table.plr_folder.path:GetFullName())
 		make_detect_function()
 	end
-	plr_folder_path.Text = child_table.plr_folder.path:GetFullName()
+	plr_folder_path._button1.Text = child_table.plr_folder.path:GetFullName()
 end)
 
-npc_folder_path.FocusLost:Connect(function(enterPressed)
+npc_folder_path:OnFunction(function(value)
 	local text_parts = string.split(npc_folder_path.Text, ".")
 	if text_parts[1] == "Workspace" or text_parts[1] == "workspace" then text_parts[1] = workspace end
 	local manual_path = paths_module.safeFind(text_parts[1], nil, text_parts[2], text_parts[3], text_parts[4], text_parts[5], text_parts[6])
@@ -1221,11 +872,15 @@ npc_folder_path.FocusLost:Connect(function(enterPressed)
 		warn("found path for NPC: ", child_table.npc_folder.path:GetFullName())
 		make_detect_function()
 	end
-	npc_folder_path.Text = child_table.npc_folder.path:GetFullName()
+	npc_folder_path._button1.Text = child_table.npc_folder.path:GetFullName()
 end)
 
-SaveSettingsButton.Activated:Connect(function()
-	update_setting()
+SaveSettingsButton:OnFunction(function(value)
+	hub:UpdateSettings()
+end)
+
+ReloadButton:OnFunction(function(value)
+	make_detect_function()
 end)
 
 child_table.plr_folder.childs = paths_module.get_child_folder("plr_folder")
@@ -1233,24 +888,24 @@ child_table.npc_folder.childs = paths_module.get_child_folder("npc_folder")
 
 make_detect_function()
 
-runners.runner_main = rs.RenderStepped:Connect(function()
+hub._runners.runner_main = rs.RenderStepped:Connect(function()
 	if not targetenemy 
 		or not (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path))
-		or (targetenemy.Humanoid:GetState() == Enum.HumanoidStateType.Dead and not configs.lockAfterDead) then
+		or (targetenemy.Humanoid:GetState() == Enum.HumanoidStateType.Dead and not lockafterdeadbutton._value) then
 		targetenemy = nil
 	end
 
-	if not enable then return end
+	if not hub._enable then return end
 
 	if targetenemy == nil then
 		AimLock()
-	elseif targetenemy and lock_nearest_enemy then
+	elseif targetenemy and LockNearestEnemy._value then
 		AimLock()
 	end
 
 end)
 
-runners.runner_mouse = plr_mouse.Move:Connect(function()
+hub._runners.runner_mouse = plr_mouse.Move:Connect(function()
 	task.spawn(function()
 		local x,y = getMousePosition()
 		radius.Position = UDim2.new(0, x, 0, y) - UDim2.new(
@@ -1260,7 +915,7 @@ runners.runner_mouse = plr_mouse.Move:Connect(function()
 	end)
 end)
 
-runners.runner_lockon = rs.RenderStepped:Connect(function()
+hub._runners.runner_lockon = rs.RenderStepped:Connect(function()
 	if targetenemy and (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path)) then
 		lockon()
 	end
@@ -1271,12 +926,12 @@ local rpl = 10
 local previous_rpl = nil
 local rnl = 10
 local previous_rnl = nil
-runners.runner_players_list = rs.RenderStepped:Connect(function(dt)
+hub._runners.runner_players_list = rs.RenderStepped:Connect(function(dt)
 	rpl += dt
 	if (previous_rpl and previous_rpl == #child_table.plr_folder.childs) or rpl < delay_t then return end
 	rpl = 0
 
-	for _,v in pairs(PlayersListFrame:GetChildren()) do
+	for _,v in pairs(hub._catagories["Players List"]._main_f:GetChildren()) do
 		if not v:IsA("TextLabel") then continue end
 		v:Destroy()
 	end
@@ -1287,17 +942,17 @@ runners.runner_players_list = rs.RenderStepped:Connect(function(dt)
 		local text = Instance.new("TextLabel")
 		text.Text = v.Name
 		text.BackgroundColor3 = falsecolor
-		text.Parent = PlayersListFrame
+		text.Parent = hub._catagories["Players List"]._main_f
 	end
 
 end)
 
-runners.runner_npcs_list = rs.RenderStepped:Connect(function(dt)
+hub._runners.runner_npcs_list = rs.RenderStepped:Connect(function(dt)
 	rnl += dt
 	if (previous_rnl and previous_rnl == #child_table.npc_folder.childs) or rnl < delay_t then return end
 	rnl = 0
 
-	for _,v in pairs(NPCsListFrame:GetChildren()) do
+	for _,v in pairs(hub._catagories["NPCs List"]._main_f:GetChildren()) do
 		if not v:IsA("TextLabel") then continue end
 		v:Destroy()
 	end
@@ -1307,41 +962,32 @@ runners.runner_npcs_list = rs.RenderStepped:Connect(function(dt)
 		local text = Instance.new("TextLabel")
 		text.Text = v.Name
 		text.BackgroundColor3 = falsecolor
-		text.Parent = NPCsListFrame
+		text.Parent = hub._catagories["NPCs List"]._main_f
 	end
 end)
 
-ReloadButton.Activated:Connect(function()
-	make_detect_function()
-end)
-
-runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
+hub._runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
 
 	local keyCode
 	local inputType
 
-	pcall(function() keyCode = Enum.KeyCode[configs.activeKeybind] end)
-	pcall(function() inputType = Enum.UserInputType[configs.activeKeybind] end)
+	pcall(function() keyCode = Enum.KeyCode[ChangeKeybindButton._value] end)
+	pcall(function() inputType = Enum.UserInputType[ChangeKeybindButton._value] end)
 
 	if (keyCode and input.KeyCode == keyCode) or (inputType and input.UserInputType == inputType) then
-		enable = not enable
+		hub._enable = not hub._enable
 		targetenemy = nil
-		if enable then
-			colorstatus.BackgroundColor3 = truecolor
-		else
-			colorstatus.BackgroundColor3 = falsecolor
-		end
-		radius.BackgroundColor3 = if enable then Color3.fromRGB(255, 255, 0) else colorstatus.BackgroundColor3
+		radius.BackgroundColor3 = if hub._enable then Color3.fromRGB(255, 255, 0) else falsecolor
 	elseif input.KeyCode == Enum.KeyCode.KeypadPlus then
-		screen.Enabled = not screen.Enabled
+		hub._screen.Enabled = not hub._screen.Enabled
 		extrascreen.Enabled = not extrascreen.Enabled
 	end
 end)
 
-players.PlayerRemoving:Connect(function(player)
-    if player ~= plr then return end
-    update_setting()
-end)
+hub.OnClose = function()
+	if directionline_folder then directionline_folder:Destroy() end
+	extrascreen:Destroy()
+end
 
 logs("aimlock: successful run the gui and function")
