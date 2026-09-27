@@ -280,7 +280,8 @@ HubSetup.createHub = function(configs, file_path)
 				end)
 
 				function self_frame:RegisterSave(config_name)
-					if not self_main._default_configs[config_name] then warn(`Config name: {config_name} are not exist`) return end
+					if self_main._default_configs[config_name] == nil then warn(`Config name: {config_name} are not exist`) return self end
+					print(`register {config_name}`)
 					self_main._registered_configs_frames[config_name] = self
 					return self
 				end
