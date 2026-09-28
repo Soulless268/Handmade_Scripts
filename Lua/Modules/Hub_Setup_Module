@@ -248,7 +248,7 @@ HubSetup.createHub = function(configs, file_path)
 
 						if not self_frame.BuiltInFunction then
 							function self_frame:BuiltInFunction()
-								if not self._value == nil then return end
+								if self._value == nil then return end
 								self._button1.Text = self._value
 							end
 						end
@@ -265,7 +265,7 @@ HubSetup.createHub = function(configs, file_path)
 
 						if not self_frame.BuiltInFunction then
 							function self_frame:BuiltInFunction()
-								if not self._value == nil then return end
+								if self._value == nil then return end
 								self._button1.Text = self._value
 							end
 						end
