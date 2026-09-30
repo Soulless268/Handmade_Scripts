@@ -72,7 +72,7 @@ HubSetup.createHub = function(configs, file_path)
 	self_main._registered_configs_frames = {}
 	self_main._autosave_delay = 10
 	self_main._autosave_c_dt = 0
-	self_main._file_path = file_path or nil
+	self_main._file_path = if file_path then `NickHub/{file_path}` else nil
 	self_main._catagories = {}
 	self_main._current_catagory = nil
 	self_main._runners = {}
@@ -164,6 +164,7 @@ HubSetup.createHub = function(configs, file_path)
 				self_cat._frames[title] = {}
 				local self_frame = setmetatable(self_cat._frames[title], {__index = new_gui_module})
 				self_frame._value = value
+				self_frame._frame = nil
 				self_frame._left_frame = nil
 				self_frame._right_frame = nil
 				self_frame._func = nil
@@ -173,16 +174,16 @@ HubSetup.createHub = function(configs, file_path)
 
 				self_frame._button1 = nil
 
-				local frame = Instance.new("Frame")
-				frame.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
-				frame.Size = UDim2.new(.937, 0, .152, 0)
-				frame.Parent = self_cat._main_f
-				HubSetup.UiStroke(frame)
+				self_frame._frame = Instance.new("Frame")
+				self_frame._frame.BackgroundColor3 = Color3.fromRGB(75, 75, 75)
+				self_frame._frame.Size = UDim2.new(.937, 0, .152, 0)
+				self_frame._frame.Parent = self_cat._main_f
+				HubSetup.UiStroke(self_frame._frame)
 
 				self_frame._left_frame = Instance.new("Frame")
 				self_frame._left_frame.BackgroundTransparency = 1
 				self_frame._left_frame.Size = UDim2.new(.5,0,1,0)
-				self_frame._left_frame.Parent = frame
+				self_frame._left_frame.Parent = self_frame._frame
 				local g1 = HubSetup.UiList(self_frame._left_frame)
 				g1.FillDirection = Enum.FillDirection.Horizontal
 				g1.HorizontalAlignment = Enum.HorizontalAlignment.Left
@@ -194,7 +195,7 @@ HubSetup.createHub = function(configs, file_path)
 				self_frame._right_frame.Size = UDim2.new(.5,0,1,0)
 				self_frame._right_frame.Position = UDim2.new(1,0,0,0)
 				self_frame._right_frame.AnchorPoint = Vector2.new(1,0)
-				self_frame._right_frame.Parent = frame
+				self_frame._right_frame.Parent = self_frame._frame
 
 				local title_label = Instance.new("TextLabel")
 				title_label.Text = `  {title}`

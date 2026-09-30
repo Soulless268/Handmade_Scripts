@@ -1,4 +1,4 @@
--- Date Updated -- 7:10 PM -- 27/9/2026 -- DD/MM/YYYY
+-- Date Updated -- 9:00 PM -- 30/9/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/aimlock"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -7,6 +7,8 @@ local rp = game:GetService("ReplicatedStorage")
 local rs = game:GetService("RunService")
 local uis = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
+local gs = game:GetService("GuiService")
+local vim = game:GetService("VirtualInputManager")
 
 local no_char_from_start = false
 
@@ -17,7 +19,7 @@ local hrp
 local plr_mouse = plr:GetMouse()
 local cam = workspace.CurrentCamera
 
-local file_path = "NickHub/AIMLOCK.nh"
+local file_path = "AIMLOCK.nh"
 
 print("aimlock: trying to run module")
 
@@ -164,6 +166,7 @@ local function finding_(mousePos, children)
 		local enemyplr = players:GetPlayerFromCharacter(enemy)
 		if enemyplr and LockPlayer._value then
 			if not LockTeam._value and enemyplr.Team == plr.Team then return end
+			if not LockFriends._value and plr:IsFriendsWithAsync(enemyplr.UserId) then return end
 			if table.find(ignore_players, enemyplr.Name) then return end
 			targetenemy = enemy
 			return targetenemy
@@ -286,9 +289,19 @@ do
 
 	LockPlayer = hub._catagories.AimLock:CreateFrame("Lock Player", "Lock Player", true):CreateToggle():RegisterSave("lockPlayer")
 
-	LockTeam = hub._catagories.AimLock:CreateFrame("Lock Team", "Lock Team", true):CreateToggle():RegisterSave("lockTeam")
+	LockTeam = hub._catagories.AimLock:CreateFrame("Lock Team", "Lock same Team", true):CreateToggle():RegisterSave("lockTeam")
 
 	LockFriends = hub._catagories.AimLock:CreateFrame("Lock Friends", "Lock your friends", true):CreateToggle():RegisterSave("lockFriends")
+
+	hub._catagories.AimLock:CreateDivider("Configs")
+
+	SilentAim = hub._catagories.AimLock:CreateFrame("Silent Aim", "When click the mouse the extra mouse will aim at the target without the real mouse moving", false):CreateToggle()
+	SilentAim._left_frame.Parent.Visible = false
+
+	TriggerAim = hub._catagories.AimLock:CreateFrame("Trigger Aim", "When mouse are at the saem spot as target, it will click the mouse", false):CreateToggle()
+	TriggerAim._left_frame.Parent.Visible = false
+
+	LockNearestEnemy = hub._catagories.AimLock:CreateFrame("Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", false):CreateToggle()
 
 	SelectPart = hub._catagories.AimLock:CreateFrame("Select Part", "Select Part", "Choose"):CreateButton()
 
@@ -298,7 +311,6 @@ do
 
 	ShowViewDirectionLine = hub._catagories.AimLock:CreateFrame("Show the line in Player Head", "can know what player is looking at right now", false):CreateToggle()
 
-	LockNearestEnemy = hub._catagories.AimLock:CreateFrame("Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", false):CreateToggle()
 
 	-----ESP-----
 
@@ -314,6 +326,14 @@ do
 	
 	EspBoxTypeButton = hub._catagories.ESP:CreateFrame("Box Esp", nil, false):CreateToggle()
 
+	-----Extra-----
+
+	InfiniteYield = hub._catagories.Extra:CreateFrame("infinite Yield", "you know"):CreateButton()
+
+	NewDex = hub._catagories.Extra:CreateFrame("New Dex", "you know"):CreateButton()
+
+	OldDex = hub._catagories.Extra:CreateFrame("Old Dex", "you know"):CreateButton()
+
 	-----Settings-----
 
 	ReloadButton = hub._catagories.Settings:CreateFrame("Reload", "Reload"):CreateButton()
@@ -322,7 +342,7 @@ do
 
 	aimlock_smoothness_text = hub._catagories.Settings:CreateFrame("Smoothness", "Smoothness of the aim 0-5"):CreateTextBox():RegisterSave("aimSmoothness")
 
-	ViewLineDistanceText = hub._catagories.Settings:CreateFrame("View line Distance", "the Distance of View line"):CreateTextBox():RegisterSave("viewlineDistance")
+	ViewLineDistanceText = hub._catagories.Settings:CreateFrame("View line Distance", "the Distance of View line", 2000):CreateTextBox():RegisterSave("viewlineDistance")
 
 	lockafterdeadbutton = hub._catagories.Settings:CreateFrame("Lock after dead", "Lock after dead"):CreateToggle():RegisterSave("lockAfterDead")
 
@@ -509,20 +529,7 @@ ShowViewDirectionLine:OnFunction(function(value)
 
 	local function remove_dir_line(adornee)
 		if not directionlines_store[adornee] then return end
-
-		if directionlines_store[adornee].connection then
-			directionlines_store[adornee].connection:Disconnect()
-		end
-		
-		if directionlines_store[adornee].beam then
-			directionlines_store[adornee].beam.Attachment0:Destroy()
-			directionlines_store[adornee].beam.Attachment1:Destroy()
-		end
-
-		if directionlines_store[adornee].endPart then
-			directionlines_store[adornee].endPart:Destroy()
-		end
-
+		directionlines_store[adornee]:Destroy()
 		directionlines_store[adornee] = nil
 	end
 
@@ -530,60 +537,14 @@ ShowViewDirectionLine:OnFunction(function(value)
 		if directionlines_store[adornee] then return end
 		local head = adornee:WaitForChild("Head")
 
-		local startAttachment = Instance.new("Attachment")
-		startAttachment.Name = "YOOITDIRECTIONLINE!!!START"
-		startAttachment.Position = Vector3.new(0, 0, -0.5)
-		startAttachment.Parent = parent or head
+		local new = Instance.new("LineHandleAdornment")
+		new.Name = "YOOITDIRECTIONLINE!!"
+		new.Color3 = Color3.fromRGB(255,255,255)
+		new.Adornee = head
+		new.Length = ViewLineDistanceText._value
+		new.Parent = directionline_folder
 
-		local endPart = Instance.new("Part")
-		endPart.Name = "YOOITDIRECTIONLINE!!!PART"
-		endPart.Size = Vector3.new(0.1, 0.1, 0.1)
-		endPart.Transparency = 1
-		endPart.CanCollide = false
-		endPart.CanQuery = false
-		endPart.CanTouch = false
-		endPart.Anchored = true
-		endPart.Parent = directionline_folder
-
-		local endAttachment = Instance.new("Attachment")
-		endAttachment.Parent = endPart
-
-		local beam = Instance.new("Beam")
-		beam.Name = "YOOITDIRECTIONLINE!!!"
-		beam.Attachment0 = startAttachment
-		beam.Attachment1 = endAttachment
-		beam.Width0 = 0.08
-		beam.Width1 = 0.08
-		beam.FaceCamera = true
-		beam.LightEmission = 1
-		beam.Parent = endPart
-
-		local connection
-		connection = rs.Heartbeat:Connect(function()
-			if not adornee or not head.Parent or not startAttachment.Parent or hub._DESTROYED then
-
-				if connection then
-					connection:Disconnect()
-				end
-				
-				if beam then
-					beam.Attachment0:Destroy()
-					beam.Attachment1:Destroy()
-				end
-
-				if endPart then
-					endPart:Destroy()
-				end
-
-				directionlines_store[adornee] = nil
-				return
-			end
-
-			local direction = head.CFrame.LookVector
-			endPart.Position = head.Position + direction * ViewLineDistanceText._value
-		end)
-
-		directionlines_store[adornee] = {endpart = endPart, beam = beam, connection = connection}
+		directionlines_store[adornee] = new
 	end
 
 	if value then
@@ -598,9 +559,6 @@ ShowViewDirectionLine:OnFunction(function(value)
 	else
 		for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
 			remove_dir_line(v)
-		end
-		if hub._runners.runner_highlight_plr then
-			hub._runners.runner_highlight_plr:Disconnect()
 		end
 	end
 end)
@@ -725,7 +683,7 @@ end
 
 local function clear_nil_highlight()
 	for i,v in pairs(highlights_store) do
-		if not v.Adornee then v:Destroy() else continue end
+		if not v.Adornee:IsDescendantOf(workspace) then v:Destroy() else continue end
 	end
 end
 
@@ -881,6 +839,18 @@ end)
 
 ReloadButton:OnFunction(function(value)
 	make_detect_function()
+end)
+
+InfiniteYield:OnFunction(function(value)
+	loadstring(game:HttpGet(('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'),true))()
+end)
+
+NewDex:OnFunction(function(value)
+	loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
+end)
+
+OldDex:OnFunction(function(value)
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
 end)
 
 child_table.plr_folder.childs = paths_module.get_child_folder("plr_folder")
