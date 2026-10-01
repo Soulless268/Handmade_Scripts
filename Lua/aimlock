@@ -4,11 +4,13 @@
 local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
 local rp = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
 local rs = game:GetService("RunService")
 local uis = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local gs = game:GetService("GuiService")
 local vim = game:GetService("VirtualInputManager")
+
 
 local no_char_from_start = false
 
@@ -295,11 +297,11 @@ do
 
 	hub._catagories.AimLock:CreateDivider("Configs")
 
-	SilentAim = hub._catagories.AimLock:CreateFrame("Silent Aim", "When click the mouse the extra mouse will aim at the target without the real mouse moving", false):CreateToggle()
-	SilentAim._left_frame.Parent.Visible = false
+	-- SilentAim = hub._catagories.AimLock:CreateFrame("Silent Aim", "When click the mouse the extra mouse will aim at the target without the real mouse moving", false):CreateToggle()
+	-- SilentAim._frame.Parent.Visible = false
 
-	TriggerAim = hub._catagories.AimLock:CreateFrame("Trigger Aim", "When mouse are at the saem spot as target, it will click the mouse", false):CreateToggle()
-	TriggerAim._left_frame.Parent.Visible = false
+	-- TriggerAim = hub._catagories.AimLock:CreateFrame("Trigger Aim", "When mouse are at the saem spot as target, it will click the mouse", false):CreateToggle()
+	-- TriggerAim._frame.Parent.Visible = false
 
 	LockNearestEnemy = hub._catagories.AimLock:CreateFrame("Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", false):CreateToggle()
 
@@ -328,7 +330,11 @@ do
 
 	-----Extra-----
 
-	InfiniteYield = hub._catagories.Extra:CreateFrame("infinite Yield", "you know"):CreateButton()
+	FullBright = hub._catagories.Extra:CreateFrame("Full Bright", nil, false):CreateToggle()
+
+	NoFog = hub._catagories.Extra:CreateFrame("No Fog", nil, false):CreateToggle()
+
+	hub._catagories.Extra:CreateDivider("Loadstring")
 
 	NewDex = hub._catagories.Extra:CreateFrame("New Dex", "you know"):CreateButton()
 
@@ -391,7 +397,7 @@ do
 	extrascreen = Instance.new("ScreenGui")
 	extrascreen.Name = "NickExtra_Aim"
 	extrascreen.ResetOnSpawn = false
-	extrascreen.Parent = coregui
+	extrascreen.Parent = hub._folder
 
 	do
 		radius = Instance.new("Frame")
@@ -841,8 +847,48 @@ ReloadButton:OnFunction(function(value)
 	make_detect_function()
 end)
 
-InfiniteYield:OnFunction(function(value)
-	loadstring(game:HttpGet(('https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source'),true))()
+FullBright:OnFunction(function(value)
+	if value then
+		originalbright = {
+			Brightness = Lighting.Brightness;
+			ClockTime = Lighting.ClockTime;
+			FogEnd = Lighting.FogEnd;
+			GlobalShadows = Lighting.GlobalShadows;
+			OutdoorAmbient = Lighting.OutdoorAmbient;
+		}
+		local function brightFunc()
+			Lighting.Brightness = 2
+			Lighting.ClockTime = 14
+			Lighting.FogEnd = 100000
+			Lighting.GlobalShadows = false
+			Lighting.OutdoorAmbient = Color3.fromRGB(128, 128, 128)
+		end
+		brightLoop = rs.RenderStepped:Connect(brightFunc)
+	else
+		if brightLoop then brightLoop:Disconnect() end
+		if next(originalbright) then
+			for i,v in originalbright do
+				Lighting[i] = v
+			end
+			originalbright = {}
+		end
+	end
+end)
+
+NoFog:OnFunction(function(value)
+	if value then
+		local function nofogFunc()
+			Lighting.FogEnd = 100000
+			for i,v in pairs(Lighting:GetDescendants()) do
+				if v:IsA("Atmosphere") then
+					v:Destroy()
+				end
+			end
+		end
+		nofogLoop = rs.RenderStepped:Connect(nofogFunc)
+	else
+		if nofogLoop then nofogLoop:Disconnect() end
+	end
 end)
 
 NewDex:OnFunction(function(value)
