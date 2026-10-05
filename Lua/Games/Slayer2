@@ -133,12 +133,11 @@ task.spawn(function()
 			until not fishing_frame:IsDescendantOf(plr.PlayerGui)
             task.wait(1)
             press_key("T")
-		elseif not found then 
-            task.wait(1)
+		elseif not found then
 			mouse1press()
             task.wait(.1)
             mouse1release()
-            task.wait(.1)
+            task.wait(.5)
 		end
 
 	end
