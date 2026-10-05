@@ -1,4 +1,5 @@
 -- Date Updated -- 2:10 AM -- 29/8/2026 -- DD/MM/YYYY
+-- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Arcane_Linage"),true))()
 
 local coregui = game:GetService("CoreGui")
 local players = game:GetService("Players")
@@ -158,7 +159,6 @@ do
 
 end
 
-local pressing = false
 runners.runner_dodgeQte = plr.PlayerGui:WaitForChild("Combat").DodgeQTE:GetPropertyChangedSignal("Visible"):Connect(function()
     if not enable then return end
     if not plr.PlayerGui.Combat.DodgeQTE.Visible then return end
@@ -169,17 +169,18 @@ runners.runner_dodgeQte = plr.PlayerGui:WaitForChild("Combat").DodgeQTE:GetPrope
     local center1 = slider.AbsolutePosition.X
     local center2 = dodge_frame.AbsolutePosition.X
 
-    local runner
-    runner = rs.RenderStepped:Connect(function()
-		if not enable then if runner then runner:Disconnect() end
-		if not plr.PlayerGui.Combat.DodgeQTE.Visible then if runner then runner:Disconnect() end end
-        center1 = slider.AbsolutePosition.X
-        center2 = dodge_frame.AbsolutePosition.X
+	local runner
+	runner = slider:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+		if not enable then if runner then runner:Disconnect() return end end
 
-        if math.abs(center1 - center2) <= 4 then
-            press_key("Space")
-        end
-    end)
+		center1 = slider.AbsolutePosition.X
+		center2 = dodge_frame.AbsolutePosition.X
+
+		if math.abs(center1 - center2) <= dodge_frame.AbsoluteSize.X/2 then
+			press_key("Space")
+			if runner then runner:Disconnect() end
+		end
+	end)
 end)
 
 runners.runner_daggerQte = plr.PlayerGui:WaitForChild("Combat").DaggerQTE.ChildAdded:Connect(function(child)
