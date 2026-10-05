@@ -1,4 +1,4 @@
--- Date Updated -- 9:00 PM -- 30/9/2026 -- DD/MM/YYYY
+-- Date Updated -- 2:40 AM -- 6/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/aimlock"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -48,7 +48,6 @@ local totalTime_prediction = 10
 local dt_prediction = 0.1
 local ignore_players = {}
 local frame_store = {}
-local highlights_store = {} -- setmetatable({}, {__mode = "k"}) -- weak keys
 local directionlines_store = {} -- setmetatable({}, {__mode = "k"}) -- weak keys
 local background_image_id = "rbxassetid://86093393173023"
 local truecolor = Color3.fromRGB(170, 170, 0)
@@ -135,9 +134,13 @@ local function finding_(mousePos, children)
 	for i,enemy in pairs(children) do
 		if enemy == char then continue end
 		if enemy:FindFirstChild(targetpart) then
-			local enemypos = enemy[targetpart].CFrame.Position
+			local playerPos = if char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+			local enemyPos = enemy[targetpart].CFrame.Position
+			local distance = (enemyPos - playerPos).Magnitude
 
-			local screenPos, onScreen = cam:WorldToViewportPoint(enemypos)
+			if distance > LockDistance._value then continue end
+
+			local screenPos, onScreen = cam:WorldToViewportPoint(enemyPos)
 			if onScreen then
 				local dist = (Vector2.new(mousePos.X, mousePos.Y) - Vector2.new(screenPos.X, screenPos.Y)).Magnitude
 				if dist <= radiustext._value then
@@ -215,12 +218,12 @@ function lockon()
 	local target = CFrame.new(pos, enemypos)
 
 	local function pan_cam(pos)
-		if aimlock_smoothness_text._value <= 0 then
+		if AimlockSmoothness._value <= 0 then
 			cam.CFrame = target
 		else
-			local alpha = 1 / (aimlock_smoothness_text._value * 2 + 1) --alternative
-			--local alpha = math.exp(-aimlock_smoothness_text._value) --alternative
-			-- local alpha = 1 / (aimlock_smoothness_text._value + 1)  --main
+			local alpha = 1 / (AimlockSmoothness._value * 2 + 1) --alternative
+			--local alpha = math.exp(-AimlockSmoothness._value) --alternative
+			-- local alpha = 1 / (AimlockSmoothness._value + 1)  --main
 			cam.CFrame = cam.CFrame:Lerp(target, alpha)
 		end
 	end
@@ -264,17 +267,30 @@ configs = {
 	lockTeam = true;
 	lockFriends = true;
 	lockAfterDead = false;
+	lockNearest = true;
+	predictMovement = false;
 	detectionRadius = 50;
 	viewlineDistance = 2000;
-	predictMovement = false;
+	lockDistance = 1000;
 }
 
 hub = HubSetupModule.createHub(configs, file_path)
 hub._main_frame.Position = UDim2.new(1, -1, 0.15, 0)
 
-local highlight_folder = Instance.new("Folder")
+highlight_folder = Instance.new("Folder")
 highlight_folder.Name = "HighlightsFolder"
-highlight_folder.Parent = hub._screen
+highlight_folder.Parent = hub._folder
+
+player_esp_folder = Instance.new("Folder")
+player_esp_folder.Name = "Players"
+player_esp_folder.Parent = highlight_folder
+
+npcs_esp_folder = Instance.new("Folder")
+npcs_esp_folder.Name = "NPCs"
+npcs_esp_folder.Parent = highlight_folder
+
+highlights_store_plr = {}
+highlights_store_npc = {}
 
 local catagories = {
 	"AimLock";
@@ -297,13 +313,15 @@ do
 
 	hub._catagories.AimLock:CreateDivider("Configs")
 
-	-- SilentAim = hub._catagories.AimLock:CreateFrame("Silent Aim", "When click the mouse the extra mouse will aim at the target without the real mouse moving", false):CreateToggle()
-	-- SilentAim._frame.Parent.Visible = false
+	SilentAim = hub._catagories.AimLock:CreateFrame("Silent Aim", "When click the mouse the extra mouse will aim at the target without the real mouse moving", false):CreateToggle()
+	SilentAim._frame.Parent.Visible = false
 
 	-- TriggerAim = hub._catagories.AimLock:CreateFrame("Trigger Aim", "When mouse are at the saem spot as target, it will click the mouse", false):CreateToggle()
 	-- TriggerAim._frame.Parent.Visible = false
 
-	LockNearestEnemy = hub._catagories.AimLock:CreateFrame("Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", false):CreateToggle()
+	LockDistance = hub._catagories.AimLock:CreateFrame("Lock Distance", "how far it can lock", 1000):CreateTextBox():RegisterSave("lockDistance")
+
+	LockNearestEnemy = hub._catagories.AimLock:CreateFrame("Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", true):CreateToggle():RegisterSave("lockNearest")
 
 	SelectPart = hub._catagories.AimLock:CreateFrame("Select Part", "Select Part", "Choose"):CreateButton()
 
@@ -346,7 +364,7 @@ do
 
 	radiustext = hub._catagories.Settings:CreateFrame("Radius", "Radius"):CreateTextBox():RegisterSave("detectionRadius")
 
-	aimlock_smoothness_text = hub._catagories.Settings:CreateFrame("Smoothness", "Smoothness of the aim 0-5"):CreateTextBox():RegisterSave("aimSmoothness")
+	AimlockSmoothness = hub._catagories.Settings:CreateFrame("Smoothness", "Smoothness of the aim 0-5"):CreateTextBox():RegisterSave("aimSmoothness")
 
 	ViewLineDistanceText = hub._catagories.Settings:CreateFrame("View line Distance", "the Distance of View line", 2000):CreateTextBox():RegisterSave("viewlineDistance")
 
@@ -462,6 +480,12 @@ players.PlayerRemoving:Connect(function(player)
 	if table.find(ignore_players, player.Name) then
 		table.remove(ignore_players, table.find(ignore_players, player.Name))
 	end
+
+	if highlights_store_plr[player.Name] then
+		highlights_store_plr[player.Name]:Destroy()
+		highlights_store_plr[player.Name] = nil
+	end
+
 	-- local partbutton = ignore_players_frame:FindFirstChild(player.Name)
 	-- if partbutton then
 	-- 	partbutton:Destroy()
@@ -479,15 +503,21 @@ radiustext:OnFunction(function(value)
 	end
 end)
 
-aimlock_smoothness_text:OnFunction(function(value)
+AimlockSmoothness:OnFunction(function(value)
 	if typeof(tonumber(value)) == "number" then
-		aimlock_smoothness_text._value = tonumber(value)
+		AimlockSmoothness._value = tonumber(value)
 	end
 end)
 
 ViewLineDistanceText:OnFunction(function(value)
 	if typeof(tonumber(value)) == "number" then
 		ViewLineDistanceText._value = tonumber(value)
+	end
+end)
+
+LockDistance:OnFunction(function(value)
+	if typeof(tonumber(value)) == "number" then
+		LockDistance._value = tonumber(value)
 	end
 end)
 
@@ -514,6 +544,7 @@ ChangeKeybindButton:OnFunction(function(value)
 		else
 			key = input.UserInputType.Name
 		end
+		task.wait()
 		ChangeKeybindButton._value = key
 		ChangeKeybindButton._button1.Text = ChangeKeybindButton._value
 		if hub._runners.ChooseKeybind then
@@ -539,7 +570,7 @@ ShowViewDirectionLine:OnFunction(function(value)
 		directionlines_store[adornee] = nil
 	end
 
-	local function add_dir_line(adornee, parent)
+	local function add_dir_line(adornee)
 		if directionlines_store[adornee] then return end
 		local head = adornee:WaitForChild("Head")
 
@@ -567,197 +598,6 @@ ShowViewDirectionLine:OnFunction(function(value)
 			remove_dir_line(v)
 		end
 	end
-end)
-
-local function create_highlight(adornee, parent)
-	local isplr = players:GetPlayerFromCharacter(adornee)
-	if plr == isplr then return end
-
-	local new
-	if EspNormalTypeButton._value then
-		new = Instance.new("Highlight")
-		new.FillTransparency = 1
-		new.FillColor = Color3.new(1, 1, 1)
-	end
-
-	if EspBoxTypeButton._value then
-		new = Instance.new("BillboardGui")
-		new.AlwaysOnTop = true
-		new.Size = UDim2.new(5,0,7,0)
-		local frame = Instance.new("Frame")
-		frame.BackgroundTransparency = 1
-		frame.Size = UDim2.new(1,0,1,0)
-		frame.Parent = new
-		local stroke = Instance.new("UIStroke")
-		stroke.Color = Color3.fromRGB(255, 255, 0)
-		stroke.Thickness = 1
-		stroke.Parent = frame
-	end
-	
-	new.Name = "HighlightYOOitAIMHIGHLIGHT"
-	new.Adornee = adornee
-	new.Parent = parent or highlight_folder
-	highlights_store[adornee] = new
-
-	local real_parent = new.Parent
-
-	task.spawn(function()
-		if isplr and not adornee:FindFirstChild('Head') then
-			repeat task.wait(.1) until adornee:FindFirstChild('Head')
-		end
-		if isplr and adornee:FindFirstChild("Head") and highlights_store[adornee] then
-			local BillboardGui = Instance.new("BillboardGui")
-			local TextLabel = Instance.new("TextLabel")
-
-			if ShowEspStatsButton._value then
-				BillboardGui.Adornee = adornee.Head
-				BillboardGui.Name = isplr.Name
-				BillboardGui.Parent = new
-				BillboardGui.Size = UDim2.new(0, 100, 0, 150)
-				BillboardGui.StudsOffset = Vector3.new(0, 1, 0)
-				BillboardGui.AlwaysOnTop = true
-				TextLabel.Parent = BillboardGui
-				TextLabel.BackgroundTransparency = 1
-				TextLabel.Position = UDim2.new(0, 0, 0, -50)
-				TextLabel.Size = UDim2.new(0, 100, 0, 100)
-				TextLabel.Font = Enum.Font.SourceSansSemibold
-				TextLabel.TextSize = 20
-				TextLabel.TextColor3 = Color3.new(1, 1, 1)
-				TextLabel.TextStrokeTransparency = 0
-				TextLabel.TextYAlignment = Enum.TextYAlignment.Bottom
-				TextLabel.Text = 'Name: '..isplr.Name
-				TextLabel.ZIndex = 10
-			else
-				BillboardGui:Destroy()
-				TextLabel:Destroy()
-			end
-
-			local espLoopFunc
-
-			local function espLoop()
-				if highlights_store[adornee] and ShowEspStatsButton._value then
-					if adornee:FindFirstChildOfClass("Humanoid") and getRoot(adornee) and character_available() then
-						local pos = math.floor((hrp.Position - getRoot(adornee).Position).magnitude)
-						local mult = 10^(1 or 0)
-						local math = math.floor(adornee:FindFirstChildOfClass('Humanoid').Health * mult + 0.5) / mult
-						TextLabel.Text = 'Name: '..isplr.Name..' | Health: '..math..' | Studs: '..pos
-					end
-					local teamcolor = Color3.new(1, 1, 1)
-					if not LockTeam._value then
-						if isplr.TeamColor == plr.TeamColor then
-							teamcolor = Color3.new(0, 1, 0)	
-						else
-							teamcolor = Color3.new(1, 0, 0)
-						end
-					end
-					if not new:IsDescendantOf(real_parent) then espLoopFunc:Disconnect() end
-					if new:IsA("BillboardGui") then
-						if not new:FindFirstChildOfClass("Frame") then return end
-						new:FindFirstChildOfClass("Frame").BackgroundColor3 = teamcolor
-					else
-						new.FillColor = teamcolor
-					end
-				else
-					espLoopFunc:Disconnect()
-				end
-			end
-
-			espLoopFunc = rs.RenderStepped:Connect(espLoop)
-		end
-	end)
-	
-	local checking
-	local c_time = 10
-	checking = rs.RenderStepped:Connect(function(dt)
-		c_time += dt
-		if c_time < 10 then return end
-		c_time = 0
-
-		if not adornee:IsDescendantOf(workspace) then
-			new:Destroy()
-			highlights_store[adornee] = nil
-		end
-
-	end)
-
-	adornee.Destroying:Once(function()
-		new:Destroy()
-		highlights_store[adornee] = nil
-	end)
-	
-end
-
-local function clear_nil_highlight()
-	for i,v in pairs(highlights_store) do
-		if not v.Adornee:IsDescendantOf(workspace) then v:Destroy() else continue end
-	end
-end
-
-ESPPlayer:OnFunction(function(value)
-	logs("highlight in player folder")
-
-	local hl = if highlights_store[child_table.plr_folder.path] then highlights_store[child_table.plr_folder.path] else nil
-	clear_nil_highlight()
-
-	if value then
-		if child_table.plr_folder.path:IsA("Folder") or child_table.plr_folder.path == workspace then
-			for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
-				if not players:GetPlayerFromCharacter(v) then continue end
-				create_highlight(v)
-			end
-			hub._runners.runner_highlight_plr = child_table.plr_folder.path.ChildAdded:Connect(function(child)
-				if not highlights_store[child] then create_highlight(child) end
-			end)
-		else
-			if hl then return end
-			create_highlight(child_table.plr_folder.path)
-		end
-	else
-		if hl then
-			hl:Destroy()
-		else
-			for _,c in pairs(paths_module.get_child_folder("plr_folder")) do
-				if highlights_store[c] then highlights_store[c]:Destroy() end
-			end
-			if hub._runners.runner_highlight_plr then
-				hub._runners.runner_highlight_plr:Disconnect()
-			end
-		end
-	end
-end)
-
-ESPNpcs:OnFunction(function(value)
-	logs("highlight in npc folder")
-
-	local hl = if highlights_store[child_table.npc_folder.path] then highlights_store[child_table.npc_folder.path] else nil
-	clear_nil_highlight()
-
-	if value then
-		if child_table.npc_folder.path:IsA("Folder") or child_table.npc_folder.path == workspace then
-			for _,v in pairs(paths_module.get_child_folder("npc_folder")) do
-				if players:GetPlayerFromCharacter(v) then continue end
-				create_highlight(v)
-			end
-			hub._runners.runner_highlight_npc = child_table.npc_folder.path.ChildAdded:Connect(function(child)
-				if not highlights_store[child] then create_highlight(child) end
-			end)
-		else
-			if hl then return end
-			create_highlight(child_table.npc_folder.path)
-		end
-	else
-		if hl then
-			hl:Destroy()
-		else
-			for _,c in pairs(paths_module.get_child_folder("npc_folder")) do
-				if highlights_store[c] then highlights_store[c]:Destroy() end
-			end
-			if hub._runners.runner_highlight_npc then
-				hub._runners.runner_highlight_npc:Disconnect()
-			end
-		end
-	end
-
 end)
 
 local function make_detect_function()
@@ -812,6 +652,191 @@ local function make_detect_function()
 			if i then table.remove(child_table.npc_folder.childs, i) end
 		end)
 end
+
+local function create_hl(v)
+	local new_hl = Instance.new("Highlight")
+	new_hl.Name = "EspNormal"
+	new_hl.FillTransparency = 1
+	new_hl.FillColor = Color3.new(1, 1, 1)
+	new_hl.Enabled = v
+	return new_hl
+end
+
+local function create_highlight(adornee)
+	local isplr = players:GetPlayerFromCharacter(adornee)
+	if plr == isplr then return end
+
+	local tbl = {
+		EspNormalTypeButton = EspNormalTypeButton._value,
+		EspBoxTypeButton = EspBoxTypeButton._value
+	}
+
+	local PlayerESPholder
+	local NPCESPHolder
+	if isplr then
+		PlayerESPholder = Instance.new("Folder")
+		PlayerESPholder.Name = plr.Name..'_ESP'
+		PlayerESPholder.Parent = player_esp_folder
+	else
+		NPCESPHolder = Instance.new("Folder")
+		NPCESPHolder.Name = adornee.Name..'_ESP'
+		NPCESPHolder.Parent = npcs_esp_folder
+	end
+
+	for i,v in tbl do
+		local newesp
+		if i == "EspNormalTypeButton" then
+			newesp = create_hl(v)
+		elseif i == "EspBoxTypeButton" and v then
+			newesp = Instance.new("BillboardGui")
+			newesp.Name = "EspBox"
+			newesp.AlwaysOnTop = true
+			newesp.Size = UDim2.new(5,0,7,0)
+			newesp.Enabled = v
+			local frame = Instance.new("Frame")
+			frame.BackgroundTransparency = 1
+			frame.Size = UDim2.new(1,0,1,0)
+			frame.Parent = newesp
+			local stroke = Instance.new("UIStroke")
+			stroke.Color = Color3.fromRGB(255, 255, 0)
+			stroke.Thickness = 1
+			stroke.Parent = frame
+		else
+			continue
+		end
+		newesp.Adornee = adornee
+		newesp.Parent = PlayerESPholder or NPCESPHolder
+	end
+
+	if isplr then
+		highlights_store_plr[isplr.Name] = PlayerESPholder
+	else
+		highlights_store_npc[adornee] = NPCESPHolder
+	end
+
+	if not isplr then return end
+
+	task.spawn(function()
+		if isplr and not adornee:FindFirstChild('Head') then
+			repeat task.wait(.1) until adornee:FindFirstChild('Head')
+		end
+		if isplr and adornee:FindFirstChild("Head") and player_esp_folder:FindFirstChild(`{isplr.Name}_ESP`) then
+			
+			local BillboardGui = Instance.new("BillboardGui")
+			BillboardGui.Adornee = adornee.Head
+			BillboardGui.Name = isplr.Name
+			BillboardGui.Parent = new
+			BillboardGui.Size = UDim2.new(0, 100, 0, 150)
+			BillboardGui.StudsOffset = Vector3.new(0, 1, 0)
+			BillboardGui.AlwaysOnTop = true
+
+			local TextLabel = Instance.new("TextLabel")
+			TextLabel.Parent = BillboardGui
+			TextLabel.BackgroundTransparency = 1
+			TextLabel.Position = UDim2.new(0, 0, 0, -50)
+			TextLabel.Size = UDim2.new(0, 100, 0, 100)
+			TextLabel.Font = Enum.Font.SourceSansSemibold
+			TextLabel.TextSize = 20
+			TextLabel.TextColor3 = Color3.new(1, 1, 1)
+			TextLabel.TextStrokeTransparency = 0
+			TextLabel.TextYAlignment = Enum.TextYAlignment.Bottom
+			TextLabel.Text = 'Name: '..isplr.Name
+			TextLabel.ZIndex = 10
+
+			local espLoopFunc
+
+			local function espLoop()
+				if ShowEspStatsButton._value then BillboardGui.Enabled = true else BillboardGui.Enabled = false; return end
+
+				if PlayerESPholder:IsDescendantOf(player_esp_folder) then
+					if adornee:FindFirstChildOfClass("Humanoid") and getRoot(adornee) and character_available() then
+						local pos = math.floor((hrp.Position - getRoot(adornee).Position).magnitude)
+						local mult = 10^(1 or 0)
+						local math = math.floor(adornee:FindFirstChildOfClass('Humanoid').Health * mult + 0.5) / mult
+						TextLabel.Text = 'Name: '..isplr.Name..' | Health: '..math..' | Studs: '..pos
+					end
+					local teamcolor = Color3.new(1, 1, 1)
+					if not LockTeam._value then
+						if isplr.TeamColor == plr.TeamColor then
+							teamcolor = Color3.new(0, 1, 0)	
+						else
+							teamcolor = Color3.new(1, 0, 0)
+						end
+					end
+					if PlayerESPholder:FindFirstChild("EspBox") then
+						if not PlayerESPholder:FindFirstChild("EspBox"):FindFirstChildOfClass("Frame") then return end
+						PlayerESPholder:FindFirstChild("EspBox"):FindFirstChildOfClass("Frame").BackgroundColor3 = teamcolor
+					else
+						PlayerESPholder:FindFirstChild("EspNormal").FillColor = teamcolor
+					end
+				else
+					espLoopFunc:Disconnect()
+				end
+			end
+
+			espLoopFunc = rs.RenderStepped:Connect(espLoop)
+		end
+	end)
+end
+
+local function clear_nil_highlight()
+	for i,v in pairs(highlights_store) do
+		if not v.Adornee:IsDescendantOf(workspace) or not v.Adornee then v:Destroy() else continue end
+	end
+end
+
+ESPPlayer:OnFunction(function(value)
+	logs("highlight in player folder")
+
+	make_detect_function()
+
+	if value then
+		if child_table.plr_folder.path:IsA("Folder") or child_table.plr_folder.path == workspace then
+			for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
+				if not players:GetPlayerFromCharacter(v) then continue end
+				create_highlight(v)
+			end
+			hub._runners.runner_highlight_plr = child_table.plr_folder.path.ChildAdded:Connect(function(child)
+				if not players:GetPlayerFromCharacter(child) then return end
+				create_highlight(child)
+			end)
+		else
+			local newesp create_hl()
+			newesp.Adornee = child_table.plr_folder.path
+			newesp.Parent = player_esp_folder
+		end
+	else
+		for _,v in player_esp_folder:GetChildren() do v:Destroy() end
+		if hub._runners.runner_highlight_plr then hub._runners.runner_highlight_plr:Disconnect() end
+	end
+end)
+
+ESPNpcs:OnFunction(function(value)
+	logs("highlight in npc folder")
+
+	make_detect_function()
+
+	if value then
+		if child_table.npc_folder.path:IsA("Folder") or child_table.npc_folder.path == workspace then
+			for _,v in pairs(paths_module.get_child_folder("npc_folder")) do
+				if players:GetPlayerFromCharacter(v) then continue end
+				create_highlight(v)
+			end
+			hub._runners.runner_highlight_npc = child_table.npc_folder.path.ChildAdded:Connect(function(child)
+				if players:GetPlayerFromCharacter(child) then return end
+				create_highlight(child)
+			end)
+		else
+			local newesp create_hl()
+			newesp.Adornee = child_table.npc_folder.path
+			newesp.Parent = npcs_esp_folder
+		end
+	else
+		for _,v in npcs_esp_folder:GetChildren() do v:Destroy() end
+		if hub._runners.runner_highlight_npc then hub._runners.runner_highlight_npc:Disconnect() end
+	end
+
+end)
 
 plr_folder_path:OnFunction(function(value)
 	local text_parts = string.split(plr_folder_path.Text, ".")
@@ -892,11 +917,11 @@ NoFog:OnFunction(function(value)
 end)
 
 NewDex:OnFunction(function(value)
-	loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
+	loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua",true))()
 end)
 
 OldDex:OnFunction(function(value)
-	loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua"))()
+	loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua",true))()
 end)
 
 child_table.plr_folder.childs = paths_module.get_child_folder("plr_folder")
@@ -933,7 +958,48 @@ end)
 
 hub._runners.runner_lockon = rs.RenderStepped:Connect(function()
 	if targetenemy and (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path)) then
+		if SilentAim._value then return end
 		lockon()
+	end
+end)
+
+hub._runners.runner_silent_aim2 = uis.InputChanged:Connect(function(input, gpe)
+	if not SilentAim._value then return end
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		if targetenemy and (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path)) then
+			local t = 1
+			if t == 1 then
+				local enemypos = targetenemy[targetpart].CFrame.Position
+
+				local screenPos, onScreen = cam:WorldToViewportPoint(enemypos)
+				if not onScreen then return end
+
+				local inset = gs:GetGuiInset()
+
+				local mouseX = screenPos.X + inset.X
+				local mouseY = screenPos.Y
+
+				if Logs then
+					local hitbox = Instance.new("Frame")
+					hitbox.Size = UDim2.fromOffset(10, 10)
+					hitbox.AnchorPoint = Vector2.new(.5,.5)
+					hitbox.Position = UDim2.fromOffset(mouseX, mouseY)
+					hitbox.Parent = hub._screen
+					game.Debris:AddItem(hitbox, 1)
+				end
+
+				vim:SendMouseMoveEvent(mouseX, mouseY, game)
+			else
+				
+			end
+		end
+	end
+end)
+
+hub._runners.runner_silent_aim = uis.InputBegan:Connect(function(input, gpe)
+	if not SilentAim._value then return end
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+
 	end
 end)
 
