@@ -1,4 +1,4 @@
--- Date Updated -- 4:30 PM -- 9/10/2026 -- DD/MM/YYYY
+-- Date Updated -- 6:00 PM -- 9/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Pixel_Lineage"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -79,6 +79,9 @@ local catagories = {
 hub:CreateCatagory(catagories)
 
 do
+
+    AutoPlay = hub._catagories.Main:CreateFrame("Auto Play", "idk", true):CreateToggle()
+
     AutoQTE = hub._catagories.Main:CreateFrame("Auto QTE", "idk", true):CreateToggle()
 
     AutoMage = hub._catagories.Main:CreateFrame("Auto Cast", "idk", true):CreateToggle()
@@ -91,6 +94,49 @@ for _,v in hub._folder:GetDescendants() do
 end
 
 task.wait()
+
+hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
+    if not AutoPlay._value then return end
+
+    local ready = plr.PlayerGui.PBTravelScreen.Sky:FindFirstChild("PixelButton")
+    local pixel_command = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("PixelCommands")
+    local run_map = plr.PlayerGui.PlatformBattlesRunMap.RunMap
+    local results = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("Results")
+
+    if ready then
+        if not ready.Visible then return end
+        autoClickImage(ready)
+        ready.Visible = false
+    end
+
+    if pixel_command.Commands.Visible then
+        local attack = pixel_command.Commands.Attack
+        local foes = pixel_command.Party.FoesPage.ScrollingFrame
+        autoClickImage(attack)
+
+        task.wait(.1)
+
+        if #foes:GetChildren() > 1 then
+            press_key("Space")
+        end
+    end
+
+    if run_map:FindFirstChild("Popup") then
+        autoClickImage(run_map:FindFirstChild("Popup").Window.PlayAgain)
+    elseif run_map:FindFirstChild("Cards") then
+        local options = {}
+        for _,v in run_map:FindFirstChild("Cards"):GetChildren() do
+            if not v:IsA("TextButton") then continue end
+            table.insert(options, v)
+        end
+        autoClickImage(options[math.random(1, #options)])
+        options = nil
+    end 
+
+    if results then
+        autoClickImage(results.Continue)
+    end
+end)
 
 hub._runners.runner_Qte = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.PixelQTE.Panel.Area.ChildAdded:Connect(function(child)
     if not AutoQTE._value then return end
@@ -112,6 +158,10 @@ hub._runners.runner_Qte = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.Pix
         if math.abs(center1.X - center2.X) <= target.AbsoluteSize.X/2 then
             press_key("Space")
             if runner then runner:Disconnect() end
+            task.delay(10, function()
+                if runner then runner:Disconnect() end
+                runner = nil
+            end)
         end
     end)
 
@@ -128,6 +178,10 @@ hub._runners.runner_MageQte = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle
             if child.UIStroke.Color ~= Color3.fromRGB(255,255,255) then
                 press_key("Space")
                 if runner then runner:Disconnect() end
+                task.delay(10, function()
+                    if runner then runner:Disconnect() end
+                    runner = nil
+                end)
             end
         end)
     end
