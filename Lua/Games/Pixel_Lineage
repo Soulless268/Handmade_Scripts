@@ -1,0 +1,143 @@
+-- Date Updated -- 4:30 PM -- 9/10/2026 -- DD/MM/YYYY
+-- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Pixel_Lineage"),true))()
+
+local coregui = game:GetService("CoreGui")
+local players = game:GetService("Players")
+local rp = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local rs = game:GetService("RunService")
+local uis = game:GetService("UserInputService")
+local HttpService = game:GetService("HttpService")
+local gs = game:GetService("GuiService")
+local vim = game:GetService("VirtualInputManager")
+
+local plr = players.LocalPlayer
+local plr_mouse = plr:GetMouse()
+local cam = workspace.CurrentCamera
+
+local HubSetupModule = loadstring(game:HttpGet("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Modules/Hub_Setup_Module"))()
+
+-----Settings-----
+local Logs = false
+local truecolor = Color3.fromRGB(170, 170, 0)
+local falsecolor = Color3.fromRGB(163, 162, 165)
+-----Settings-----
+
+--PreLoad Local Universals Function:
+local function logs(text, w)
+    if not Logs then return end
+    if w then
+        warn(text)
+    else 
+        print(text)
+    end
+end
+
+local function autoClickImage(obj, show_hb)
+    local center = obj.AbsolutePosition + obj.AbsoluteSize / 2
+    local inset = gs:GetGuiInset()
+
+    local mouseX = center.X + inset.X
+    local mouseY = center.Y + inset.Y
+
+    if show_hb then
+        local hitbox = Instance.new("Frame")
+        hitbox.Size = UDim2.fromOffset(10, 10)
+        hitbox.AnchorPoint = Vector2.new(.5,.5)
+        hitbox.Position = UDim2.fromOffset(center.X, center.Y)
+        hitbox.Parent = screen
+        game.Debris:AddItem(hitbox, 5)
+    end
+
+    vim:SendMouseButtonEvent(mouseX, mouseY, 0, true, game, 1)
+    task.wait()
+    vim:SendMouseButtonEvent(mouseX, mouseY, 0, false, game, 1)
+end
+
+local function press_key(keycode)
+	task.wait()
+	vim:SendKeyEvent(true, Enum.KeyCode[keycode], false, game)
+	task.wait(.01)
+	vim:SendKeyEvent(false, Enum.KeyCode[keycode], false, game)
+	task.wait(.05)
+end
+
+local function press_enter()
+	task.wait()
+	vim:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+	task.wait(.01)
+	vim:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+	task.wait(.05)
+end
+
+hub = HubSetupModule.createHub(nil, nil)
+hub._main_frame.Position = UDim2.new(1, -1, 0.15, 0)
+
+local catagories = {
+	"Main";
+}
+hub:CreateCatagory(catagories)
+
+do
+    AutoQTE = hub._catagories.Main:CreateFrame("Auto QTE", "idk", true):CreateToggle()
+
+    AutoMage = hub._catagories.Main:CreateFrame("Auto Cast", "idk", true):CreateToggle()
+end
+
+for _,v in hub._folder:GetDescendants() do
+	if v:IsA("TextButton") or v:IsA("TextLabel") or v:IsA("TextBox") then
+		v.Font = Enum.Font.TitilliumWeb
+	end
+end
+
+task.wait()
+
+hub._runners.runner_Qte = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.PixelQTE.Panel.Area.ChildAdded:Connect(function(child)
+    if not AutoQTE._value then return end
+    if child.Name ~= "Track" then return end
+
+    local needle = child.Needle
+    local target = child.Perfect
+
+    local center1 = needle.AbsolutePosition + needle.AbsoluteSize / 2
+    local center2 = target.AbsolutePosition + target.AbsoluteSize / 2
+
+    local runner
+    runner = needle:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+        if not AutoQTE._value then if runner then runner:Disconnect() return end end
+
+        center1 = needle.AbsolutePosition + needle.AbsoluteSize / 2
+        center2 = target.AbsolutePosition + target.AbsoluteSize / 2
+
+        if math.abs(center1.X - center2.X) <= target.AbsoluteSize.X/2 then
+            press_key("Space")
+            if runner then runner:Disconnect() end
+        end
+    end)
+
+end)
+
+hub._runners.runner_MageQte = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.PixelQTE.Panel.Area.ChildAdded:Connect(function(child)
+    if not AutoMage._value then return end
+    if child.Name == "Frame" and child.ZIndex == 128 and child:FindFirstChild("UIStroke") then
+
+        local runner
+        runner = child:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+            if not AutoMage._value then if runner then runner:Disconnect() return end end
+
+            if child.UIStroke.Color ~= Color3.fromRGB(255,255,255) then
+                press_key("Space")
+                if runner then runner:Disconnect() end
+            end
+        end)
+    end
+end)
+
+hub._runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
+	if gpe then return end
+
+	if input.KeyCode == Enum.KeyCode.KeypadPlus then
+		hub._screen.Enabled = not hub._screen.Enabled
+		extrascreen.Enabled = not extrascreen.Enabled
+	end
+end)
