@@ -1,4 +1,4 @@
--- Date Updated -- 6:00 PM -- 9/10/2026 -- DD/MM/YYYY
+-- Date Updated -- 7:00 PM -- 9/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Pixel_Lineage"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -124,18 +124,42 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
     if run_map:FindFirstChild("Popup") then
         autoClickImage(run_map:FindFirstChild("Popup").Window.PlayAgain)
     elseif run_map:FindFirstChild("Cards") then
+
+        if run_map:FindFirstChild("Cards"):FindFirstChild("Event") then
+            if #run_map:FindFirstChild("Cards"):FindFirstChild("Event").Body:GetChildren() < 1 then return end
+            autoClickImage(run_map:FindFirstChild("Cards").Event.Body:GetChildren()[math.random(1, #run_map:FindFirstChild("Cards").Event.Body:GetChildren())])
+            
+            for _,v in run_map:FindFirstChild("Cards"):FindFirstChild("Event"):GetChildren() do
+                if not v:FindFirstChildOfClass("TextButton") then continue end
+                autoClickImage(v:FindFirstChildOfClass("TextButton"))
+                break
+            end
+            return
+        end
+
         local options = {}
         for _,v in run_map:FindFirstChild("Cards"):GetChildren() do
             if not v:IsA("TextButton") then continue end
+            if not v.Visible then continue end
             table.insert(options, v)
         end
+        if not next(options) then return end
         autoClickImage(options[math.random(1, #options)])
         options = nil
-    end 
+    end
 
     if results then
         autoClickImage(results.Continue)
     end
+
+    if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.Stage.Effects:FindFirstChild("BossChest") then
+        press_key("Space")
+    end
+
+    if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("ChestShade") then
+        autoClickImage(plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("ChestShade").LootPanel.PixelButton)
+    end
+
 end)
 
 hub._runners.runner_Qte = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.PixelQTE.Panel.Area.ChildAdded:Connect(function(child)
