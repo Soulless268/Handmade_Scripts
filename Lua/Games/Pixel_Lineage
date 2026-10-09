@@ -1,4 +1,4 @@
--- Date Updated -- 7:00 PM -- 9/10/2026 -- DD/MM/YYYY
+-- Date Updated -- 9:00 PM -- 9/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Pixel_Lineage"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -102,6 +102,7 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
     local pixel_command = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("PixelCommands")
     local run_map = plr.PlayerGui.PlatformBattlesRunMap.RunMap
     local results = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("Results")
+    local cards = run_map:FindFirstChild("Cards")
 
     if ready then
         if not ready.Visible then return end
@@ -122,15 +123,23 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
     end
 
     if run_map:FindFirstChild("Popup") then
-        autoClickImage(run_map:FindFirstChild("Popup").Window.PlayAgain)
-    elseif run_map:FindFirstChild("Cards") then
-
-        if run_map:FindFirstChild("Cards"):FindFirstChild("Event") then
-            if #run_map:FindFirstChild("Cards"):FindFirstChild("Event").Body:GetChildren() < 1 then return end
-            autoClickImage(run_map:FindFirstChild("Cards").Event.Body:GetChildren()[math.random(1, #run_map:FindFirstChild("Cards").Event.Body:GetChildren())])
+        if run_map:FindFirstChild("Popup").Window:FindFirstChild("Button") then
+            autoClickImage(run_map:FindFirstChild("Popup").Window.Button)
+        elseif run_map:FindFirstChild("Popup").Window:FindFirstChild("PlayAgain") then
+            autoClickImage(run_map:FindFirstChild("Popup").Window.PlayAgain)
+        end
+    elseif cards then
+        if cards:FindFirstChild("Event") then
+            if #cards:FindFirstChild("Event").Body:GetChildren() < 1 then return end
             
-            for _,v in run_map:FindFirstChild("Cards"):FindFirstChild("Event"):GetChildren() do
+            if not cards.Event.Body:FindFirstChild("Frame") then
+                print("not found")
+                autoClickImage(cards.Event.Body:GetChildren()[math.random(1, #cards.Event.Body:GetChildren())])
+            end
+            
+            for _,v in cards:FindFirstChild("Event"):GetChildren() do
                 if not v:FindFirstChildOfClass("TextButton") then continue end
+                if v.Name ~= "Frame" then continue end
                 autoClickImage(v:FindFirstChildOfClass("TextButton"))
                 break
             end
@@ -138,7 +147,7 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
         end
 
         local options = {}
-        for _,v in run_map:FindFirstChild("Cards"):GetChildren() do
+        for _,v in cards:GetChildren() do
             if not v:IsA("TextButton") then continue end
             if not v.Visible then continue end
             table.insert(options, v)
@@ -152,8 +161,10 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
         autoClickImage(results.Continue)
     end
 
-    if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.Stage.Effects:FindFirstChild("BossChest") then
-        press_key("Space")
+    if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("Stage") then
+        if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.Stage.Effects:FindFirstChild("BossChest") then
+            press_key("Space")
+        end
     end
 
     if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("ChestShade") then
