@@ -1,4 +1,4 @@
--- Date Updated -- 10:30 PM -- 14/10/2026 -- DD/MM/YYYY
+-- Date Updated -- 0:30 AM -- 15/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Pixel_Lineage"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -21,6 +21,7 @@ local HubSetupModule = loadstring(game:HttpGet("https://raw.githubusercontent.co
 local Logs = false
 local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
+local card_chosen = false
 -----Settings-----
 
 --PreLoad Local Universals Function:
@@ -79,7 +80,6 @@ local catagories = {
 hub:CreateCatagory(catagories)
 
 do
-
     AutoPlay = hub._catagories.Main:CreateFrame("Auto Play", "idk", true):CreateToggle()
 
     AutoQTE = hub._catagories.Main:CreateFrame("Auto QTE", "idk", true):CreateToggle()
@@ -111,12 +111,13 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
     end
 
     if pixel_command.Commands.Visible then
+        card_chosen = false
         local attack = pixel_command.Commands.Attack
         local scroll = pixel_command.Commands.Scroll
         local skills = pixel_command.Commands.Skill
         local foes = pixel_command.Party.FoesPage.ScrollingFrame
 
-        if not scroll.PixelLabel.Text == "SCROLL  (USED)" or scroll.BackgroundTransparency == 1 then
+        if scroll.PixelLabel.Text ~= "SCROLL  (USED)" or scroll.BackgroundTransparency == 1 then
             autoClickImage(scroll)
             return
         end
@@ -125,13 +126,15 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
         for _,v in pixel_command.List.ScrollingFrame:GetChildren() do
             if not v:IsA("TextButton") then
                 for _,cc in v:GetChildren() do
-                    if cc:IsA("PixelLabel") and (cc.Text == "5 EN" or v.BackgroundTransparency == 1) then
+                    if cc:IsA("PixelLabel") and (tonumber(cc.Text:match("%d+")) >= 5 or v.BackgroundTransparency == 1) then
                         autoClickImage(v)
                         return
                     end
                 end
             end
         end
+
+        task.wait(.1)
 
         autoClickImage(attack)
 
@@ -166,6 +169,8 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
             return
         end
 
+        if card_chosen then return end
+
         local options = {}
         for _,v in cards:GetChildren() do
             if not v:IsA("TextButton") then continue end
@@ -173,7 +178,9 @@ hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
             table.insert(options, v)
         end
         if not next(options) then return end
-        autoClickImage(options[math.random(1, #options)])
+        local chosen = options[math.random(1, #options)]
+        autoClickImage(chosen)
+        card_chosen = true
         options = nil
     end
 
@@ -245,8 +252,11 @@ end)
 hub._runners.runner_input = uis.InputBegan:Connect(function(input, gpe)
 	if gpe then return end
 
-	if input.KeyCode == Enum.KeyCode.KeypadPlus then
+
+    if input.UserInputType == Enum.UserInputType.MouseButton3 then
+		AutoPlay._value = not AutoPlay._value
+        AutoPlay:BuiltInFunction()
+	elseif input.KeyCode == Enum.KeyCode.KeypadPlus then
 		hub._screen.Enabled = not hub._screen.Enabled
-		extrascreen.Enabled = not extrascreen.Enabled
 	end
 end)
