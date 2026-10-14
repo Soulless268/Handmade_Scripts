@@ -1,4 +1,4 @@
--- Date Updated -- 0:30 AM -- 15/10/2026 -- DD/MM/YYYY
+-- Date Updated -- 1:15 AM -- 15/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Pixel_Lineage"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -95,109 +95,118 @@ end
 
 task.wait()
 
-hub._runners.runner_autoPlay = rs.RenderStepped:Connect(function()
-    if not AutoPlay._value then return end
+task.spawn(function()
+    while true do
+        task.wait()
+        if not AutoPlay._value then continue end
 
-    local ready = plr.PlayerGui.PBTravelScreen.Sky:FindFirstChild("PixelButton")
-    local pixel_command = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("PixelCommands")
-    local run_map = plr.PlayerGui.PlatformBattlesRunMap.RunMap
-    local results = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("Results")
-    local cards = run_map:FindFirstChild("Cards")
+        local ready = plr.PlayerGui.PBTravelScreen.Sky:FindFirstChild("PixelButton")
+        local pixel_command = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("PixelCommands")
+        local run_map = plr.PlayerGui.PlatformBattlesRunMap.RunMap
+        local results = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("Results")
+        local cards = run_map:FindFirstChild("Cards")
 
-    if ready then
-        if not ready.Visible then return end
-        autoClickImage(ready)
-        ready.Visible = false
-    end
-
-    if pixel_command.Commands.Visible then
-        card_chosen = false
-        local attack = pixel_command.Commands.Attack
-        local scroll = pixel_command.Commands.Scroll
-        local skills = pixel_command.Commands.Skill
-        local foes = pixel_command.Party.FoesPage.ScrollingFrame
-
-        if scroll.PixelLabel.Text ~= "SCROLL  (USED)" or scroll.BackgroundTransparency == 1 then
-            autoClickImage(scroll)
-            return
+        if ready then
+            if not ready.Visible then continue end
+            autoClickImage(ready)
+            ready.Visible = false
         end
-        
-        autoClickImage(skills)
-        for _,v in pixel_command.List.ScrollingFrame:GetChildren() do
-            if not v:IsA("TextButton") then
-                for _,cc in v:GetChildren() do
-                    if cc:IsA("PixelLabel") and (tonumber(cc.Text:match("%d+")) >= 5 or v.BackgroundTransparency == 1) then
-                        autoClickImage(v)
-                        return
+
+        if pixel_command.Commands.Visible then
+            card_chosen = false
+            local attack = pixel_command.Commands.Attack
+            local guard = pixel_command.Commands.Guard
+            local scroll = pixel_command.Commands.Scroll
+            local skills = pixel_command.Commands.Skill
+            local foes = pixel_command.Party.FoesPage.ScrollingFrame
+
+            if guard.PixelLabel.Text == "GUARD !" then
+                autoClickImage(guard)
+                continue
+            end
+
+            if scroll.PixelLabel.Text ~= "SCROLL  (USED)" or scroll.BackgroundTransparency == 1 then
+                autoClickImage(scroll)
+                continue
+            end
+            
+            autoClickImage(skills)
+            for _,v in pixel_command.List.ScrollingFrame:GetChildren() do
+                if not v:IsA("TextButton") then
+                    for _,cc in v:GetChildren() do
+                        if cc:IsA("PixelLabel") and (tonumber(cc.Text:match("%d+")) >= 5 or v.BackgroundTransparency == 1) then
+                            autoClickImage(v)
+                            continue
+                        end
                     end
                 end
             end
-        end
 
-        task.wait(.1)
+            task.wait(.1)
 
-        autoClickImage(attack)
+            autoClickImage(attack)
 
-        task.wait(.1)
+            task.wait(.1)
 
-        if #foes:GetChildren() > 1 then
-            press_key("Space")
-        end
-    end
-
-    if run_map:FindFirstChild("Popup") then
-        if run_map:FindFirstChild("Popup").Window:FindFirstChild("Button") then
-            autoClickImage(run_map:FindFirstChild("Popup").Window.Button)
-        elseif run_map:FindFirstChild("Popup").Window:FindFirstChild("PlayAgain") then
-            autoClickImage(run_map:FindFirstChild("Popup").Window.PlayAgain)
-        end
-    elseif cards then
-        if cards:FindFirstChild("Event") then
-            if #cards:FindFirstChild("Event").Body:GetChildren() < 1 then return end
-            
-            if not cards.Event.Body:FindFirstChild("Frame") then
-                print("not found")
-                autoClickImage(cards.Event.Body:GetChildren()[math.random(1, #cards.Event.Body:GetChildren())])
+            if #foes:GetChildren() > 1 then
+                press_key("Space")
             end
-            
-            for _,v in cards:FindFirstChild("Event"):GetChildren() do
-                if not v:FindFirstChildOfClass("TextButton") then continue end
-                if v.Name ~= "Frame" then continue end
-                autoClickImage(v:FindFirstChildOfClass("TextButton"))
-                break
+        end
+
+        if run_map:FindFirstChild("Popup") then
+            if run_map:FindFirstChild("Popup").Window:FindFirstChild("Button") then
+                autoClickImage(run_map:FindFirstChild("Popup").Window.Button)
+            elseif run_map:FindFirstChild("Popup").Window:FindFirstChild("PlayAgain") then
+                autoClickImage(run_map:FindFirstChild("Popup").Window.PlayAgain)
             end
-            return
+        elseif cards then
+            if cards:FindFirstChild("Event") then
+                if #cards:FindFirstChild("Event").Body:GetChildren() < 1 then continue end
+                
+                if not cards.Event.Body:FindFirstChild("Frame") then
+                    print("not found")
+                    autoClickImage(cards.Event.Body:GetChildren()[math.random(1, #cards.Event.Body:GetChildren())])
+                end
+                
+                for _,v in cards:FindFirstChild("Event"):GetChildren() do
+                    if not v:FindFirstChildOfClass("TextButton") then continue end
+                    if v.Name ~= "Frame" then continue end
+                    autoClickImage(v:FindFirstChildOfClass("TextButton"))
+                    break
+                end
+                continue
+            end
+
+            if card_chosen then continue end
+
+            local options = {}
+            for _,v in cards:GetChildren() do
+                if not v:IsA("TextButton") then continue end
+                if not v.Visible then continue end
+                table.insert(options, v)
+            end
+            if not next(options) then continue end
+            local chosen = options[math.random(1, #options)]
+            autoClickImage(chosen)
+            card_chosen = true
+            options = nil
         end
 
-        if card_chosen then return end
-
-        local options = {}
-        for _,v in cards:GetChildren() do
-            if not v:IsA("TextButton") then continue end
-            if not v.Visible then continue end
-            table.insert(options, v)
+        if results then
+            autoClickImage(results.Continue)
         end
-        if not next(options) then return end
-        local chosen = options[math.random(1, #options)]
-        autoClickImage(chosen)
-        card_chosen = true
-        options = nil
-    end
 
-    if results then
-        autoClickImage(results.Continue)
-    end
-
-    if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("Stage") then
-        if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.Stage.Effects:FindFirstChild("BossChest") then
-            press_key("Space")
+        if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("Stage") then
+            if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.Stage.Effects:FindFirstChild("BossChest") then
+                press_key("Space")
+            end
         end
-    end
 
-    if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("ChestShade") then
-        autoClickImage(plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("ChestShade").LootPanel.PixelButton)
-    end
+        if plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("ChestShade") then
+            autoClickImage(plr.PlayerGui.PlatformBattlesCinematic.PixelBattle:FindFirstChild("ChestShade").LootPanel.PixelButton)
+        end
 
+    end
 end)
 
 hub._runners.runner_Qte = plr.PlayerGui.PlatformBattlesCinematic.PixelBattle.PixelQTE.Panel.Area.ChildAdded:Connect(function(child)
