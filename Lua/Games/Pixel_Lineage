@@ -187,8 +187,11 @@ task.spawn(function()
             end
             if not next(options) then continue end
             local chosen = options[math.random(1, #options)]
-            autoClickImage(chosen)
             card_chosen = true
+            for i = 1,10 do
+                autoClickImage(chosen)
+                task.wait(.1)
+            end
             options = nil
         end
 
