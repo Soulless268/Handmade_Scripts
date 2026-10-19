@@ -1,4 +1,4 @@
--- Date Updated -- 2:10 AM -- 29/8/2026 -- DD/MM/YYYY
+-- Date Updated -- 6:00 AM -- 19/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/Games/Arcane_Linage"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -159,68 +159,94 @@ do
 
 end
 
-runners.runner_dodgeQte = plr.PlayerGui:WaitForChild("Combat").DodgeQTE:GetPropertyChangedSignal("Visible"):Connect(function()
-    if not enable then return end
-    if not plr.PlayerGui.Combat.DodgeQTE.Visible then return end
+local function start(child)
+	for _,v in child:GetChildren() do
+		if not v:IsA("Frame") then continue end
 
-    local slider = plr.PlayerGui.Combat.DodgeQTE.Inset.Indicator
-    local dodge_frame = plr.PlayerGui.Combat.DodgeQTE.Inset.Dodge
-
-    local center1 = slider.AbsolutePosition.X
-    local center2 = dodge_frame.AbsolutePosition.X
-
-	local runner
-	runner = slider:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
-		if not enable then if runner then runner:Disconnect() return end end
-
-		center1 = slider.AbsolutePosition.X
-		center2 = dodge_frame.AbsolutePosition.X
-
-		if math.abs(center1 - center2) <= dodge_frame.AbsoluteSize.X/2 then
-			press_key("Space")
-			if runner then runner:Disconnect() end
+		if v:FindFirstChild("BG") and v:FindFirstChild("Inset") and v:FindFirstChild("Stop") then
+			dodge__qte_frame = v
+		elseif v:FindFirstChild("Ring") and v:FindFirstChild("Timer") and v:FindFirstChild("Pips") then
+			dagger_qte_frame = v
 		end
-	end)
-end)
-
-runners.runner_daggerQte = plr.PlayerGui:WaitForChild("Combat").DaggerQTE.ChildAdded:Connect(function(child)
-	if not enable then return end
-	if child.Name ~= "ActiveRing" then return end
-
-	local function rot_transform(rot)
-        return rot % 360
-    end
-
-	local function tranform_step(rot)
-		return 360 - rot
 	end
 
-    local needle = plr.PlayerGui.Combat.DaggerQTE.Indicator
-	local rings = child
+	print(dodge__qte_frame:GetFullName())
+	print(dagger_qte_frame:GetFullName())
 
-	local runner
-	local done = {}
-	task.wait()
-	runner = rs.RenderStepped:Connect(function()
-		for _,v in pairs(rings:GetChildren()) do
-			if v.Name == "AttackTemplate" then continue end
-			if done[v] then continue end
+	if dodge__qte_frame then
+		runners.runner_dodgeQte = dodge__qte_frame:GetPropertyChangedSignal("Visible"):Connect(function()
+			if not enable then return end
+			if not dodge__qte_frame.Visible then return end
 
-			local peak_rot = tranform_step(v.Rotation)
-			local lowest = peak_rot + -10
-			local highest = peak_rot + 10
-			
-			if (rot_transform(rings.Rotation) >= lowest and rot_transform(rings.Rotation) <= highest) then
-				done[v] = true
-				v.Visible = false
-				press_key("Space")
+			local slider = dodge__qte_frame.Inset.Indicator
+			local dodge_frame = dodge__qte_frame.Inset.Mark
+
+			local center1 = slider.AbsolutePosition.X
+			local center2 = dodge_frame.AbsolutePosition.X
+
+			local runner
+			runner = slider:GetPropertyChangedSignal("AbsolutePosition"):Connect(function()
+				if not enable then if runner then runner:Disconnect() return end end
+
+				center1 = slider.AbsolutePosition.X
+				center2 = dodge_frame.AbsolutePosition.X
+
+				if math.abs(center1 - center2) <= dodge_frame.AbsoluteSize.X/2 then
+					press_key("Space")
+					if runner then runner:Disconnect() end
+				end
+			end)
+		end)
+	end
+
+	if dagger_qte_frame then
+		runners.runner_daggerQte = dagger_qte_frame:GetPropertyChangedSignal("Visible"):Connect(function()
+			if not enable then return end
+			-- if child.Name ~= "ActiveRing" then return end
+	
+			local function rot_transform(rot)
+				return rot % 360
 			end
-		end
-		if not plr.PlayerGui.Combat.DaggerQTE.Visible or not enable then
-			if runner then runner:Disconnect(); runner = nil end
-			done = nil
-		end
-	end)
+	
+			local function tranform_step(rot)
+				return 360 - rot
+			end
+	
+			local needle = dagger_qte_frame.Indicator
+			local rings = child
+	
+			local runner
+			local done = {}
+			task.wait()
+			runner = rs.RenderStepped:Connect(function()
+				for _,v in pairs(rings:GetChildren()) do
+					if v.Name == "AttackTemplate" then continue end
+					if done[v] then continue end
+	
+					local peak_rot = tranform_step(v.Rotation)
+					local lowest = peak_rot + -10
+					local highest = peak_rot + 10
+					
+					if (rot_transform(rings.Rotation) >= lowest and rot_transform(rings.Rotation) <= highest) then
+						done[v] = true
+						v.Visible = false
+						press_key("Space")
+					end
+				end
+				if not plr.PlayerGui.Combat.DaggerQTE.Visible or not enable then
+					if runner then runner:Disconnect(); runner = nil end
+					done = nil
+				end
+			end)
+		end)
+	end
+end
+
+task.spawn(start, plr.PlayerGui:WaitForChild("Combat"))
+
+runners.runner_Combats = plr.PlayerGui.ChildAdded:Connect(function(child)
+	if child.Name ~= "Combat" then return end
+	start(child)
 end)
 
 colorstatus.Activated:Connect(function()
