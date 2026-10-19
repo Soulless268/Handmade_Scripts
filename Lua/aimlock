@@ -1,4 +1,4 @@
--- Date Updated -- 2:40 AM -- 6/10/2026 -- DD/MM/YYYY
+-- Date Updated -- 6:00 PM -- 19/10/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/aimlock"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -10,7 +10,6 @@ local uis = game:GetService("UserInputService")
 local HttpService = game:GetService("HttpService")
 local gs = game:GetService("GuiService")
 local vim = game:GetService("VirtualInputManager")
-
 
 local no_char_from_start = false
 
@@ -130,11 +129,12 @@ local function drawTrajectory(part)
 end
 
 local function finding_(mousePos, children)
+	if not character_available() then return end
 	local target_in_sight = {}
 	for i,enemy in pairs(children) do
 		if enemy == char then continue end
 		if enemy:FindFirstChild(targetpart) then
-			local playerPos = if char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+			local playerPos = if character_available() and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
 			local enemyPos = enemy[targetpart].CFrame.Position
 			local distance = (enemyPos - playerPos).Magnitude
 
@@ -158,14 +158,14 @@ local function finding_(mousePos, children)
 
 	local function get_enemy(enemy)
 		local enemyPos = enemy[targetpart].CFrame.Position
-		local playerPos = if char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+		local playerPos = if character_available() and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
 
 		if not DetectThroughWall._value then
 			local ray_param = RaycastParams.new()
 			ray_param.FilterType = Enum.RaycastFilterType.Exclude
 			ray_param.FilterDescendantsInstances = {char, enemy}
 			local raycast = workspace:Raycast(playerPos, enemyPos, ray_param)
-			if raycast then warn("target have wall in bewtween | ", raycast.Instance) return end
+			if raycast then warn(`target have wall in bewtween | {raycast.Instance} | FullName: {raycast.Instance:GetFullName()}`) return end
 		end
 
 		local enemyplr = players:GetPlayerFromCharacter(enemy)
@@ -187,7 +187,7 @@ local function finding_(mousePos, children)
 
 		for _,enemy in pairs(target_in_sight) do
 			local enemyPos = enemy[targetpart].CFrame.Position
-			local playerPos = if char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+			local playerPos = if character_available() and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
 			local distance = (enemyPos - playerPos).Magnitude
 
 			if distance < nearestDistance then
@@ -658,7 +658,7 @@ local function create_hl(v)
 	new_hl.Name = "EspNormal"
 	new_hl.FillTransparency = 1
 	new_hl.FillColor = Color3.new(1, 1, 1)
-	new_hl.Enabled = v
+	new_hl.Enabled = v or true
 	return new_hl
 end
 
@@ -801,7 +801,7 @@ ESPPlayer:OnFunction(function(value)
 				create_highlight(child)
 			end)
 		else
-			local newesp create_hl()
+			local newesp = create_hl()
 			newesp.Adornee = child_table.plr_folder.path
 			newesp.Parent = player_esp_folder
 		end
@@ -827,7 +827,7 @@ ESPNpcs:OnFunction(function(value)
 				create_highlight(child)
 			end)
 		else
-			local newesp create_hl()
+			local newesp = create_hl()
 			newesp.Adornee = child_table.npc_folder.path
 			newesp.Parent = npcs_esp_folder
 		end
