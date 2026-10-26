@@ -86,8 +86,8 @@ HubSetup.createHub = function(configs, file_path)
 		self_main:UpdateSettings()
 	end)
 
-	function self_main:CreateCatagory(catagories: {string})
-		local function create(catagory_name)
+	function self_main:CreateCatagory(catagories: {string}, hidden_frames: {string})
+		local function create(catagory_name, hidden: boolean)
 			local self_cat = setmetatable({}, {__index = {}})
 
 			self_cat._frames = {}
@@ -123,25 +123,27 @@ HubSetup.createHub = function(configs, file_path)
 			blank_down.LayoutOrder = 1
 			blank_down.Parent = self_cat._main_f
 
-			self_cat._button = Instance.new("TextButton")
-			self_cat._button.Text = catagory_name
-			self_cat._button.Size = UDim2.new(0.95, 0, 0.1, 0)
-			self_cat._button.TextColor3 = Color3.fromRGB(255, 255, 255)
-			self_cat._button.TextScaled = true
-			self_cat._button.TextStrokeTransparency = 0
-			self_cat._button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-			self_cat._button.Parent = self._catagory_frame
-			local s = HubSetup.UiStroke(self_cat._button)
-			s.LineJoinMode = Enum.LineJoinMode.Round
-			HubSetup.UiCorner(self_cat._button, UDim.new(.1,0))
+			if not hidden then
+				self_cat._button = Instance.new("TextButton")
+				self_cat._button.Text = catagory_name
+				self_cat._button.Size = UDim2.new(0.95, 0, 0.1, 0)
+				self_cat._button.TextColor3 = Color3.fromRGB(255, 255, 255)
+				self_cat._button.TextScaled = true
+				self_cat._button.TextStrokeTransparency = 0
+				self_cat._button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+				self_cat._button.Parent = self._catagory_frame
+				local s = HubSetup.UiStroke(self_cat._button)
+				s.LineJoinMode = Enum.LineJoinMode.Round
+				HubSetup.UiCorner(self_cat._button, UDim.new(.1,0))
+
+				self_cat._button.Activated:Connect(function()
+					self:SetCatagory(self_cat._main_f)
+				end)
+			end
 
 			local blank_f = Instance.new("Frame")
 			blank_f.BackgroundTransparency = 1
 			blank_f.LayoutOrder = -1
-
-			self_cat._button.Activated:Connect(function()
-				self:SetCatagory(self_cat._main_f)
-			end)
 
 			function self_cat:CreateDivider(name)
 				name = name or ""
@@ -306,6 +308,16 @@ HubSetup.createHub = function(configs, file_path)
 		else
 			warn("Invalid catagory type. Expected table.")
 		end
+		
+		if not hidden_frames then return end
+
+		if typeof(hidden_frames) == "table" then
+			for i, catagory in ipairs(hidden_frames) do
+				self._catagories[catagory] = create(catagory, true)
+			end
+		else
+			warn("Invalid hidden frames type. Expected table.")
+		end
 
 	end
 
@@ -316,7 +328,7 @@ function HubSetup:UpdateSettings()
 	if not next(self._registered_configs_frames) then return end
 	local update = {}
 	for name, v in self._registered_configs_frames do
-		update[name] = v._value
+		update[name] = if v_value == nil then self._default_configs[name] else v._value
 	end
 	writefile(self._file_path, HttpService:JSONEncode(update))
 	for name, v in self._registered_configs_frames do
