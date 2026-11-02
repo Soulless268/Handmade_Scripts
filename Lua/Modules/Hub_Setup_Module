@@ -293,6 +293,12 @@ HubSetup.createHub = function(configs, file_path)
 					self_frame._func = func
 				end
 
+				function self_frame:OnFunctionChangeCatagory(frame)
+					self_frame._func = function()
+						self_main:SetCatagory(frame)
+					end
+				end
+
 				table.insert(self_cat._frames, self_frame)
 				return self_frame
 			end
