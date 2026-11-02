@@ -1,4 +1,4 @@
--- Date Updated -- 6:00 PM -- 19/10/2026 -- DD/MM/YYYY
+-- Date Updated -- 2:00 AM -- 3/11/2026 -- DD/MM/YYYY
 -- loadstring(game:HttpGet(("https://raw.githubusercontent.com/Soulless268/Handmade_Scripts/refs/heads/main/Lua/aimlock"),true))()
 
 local coregui = game:GetService("CoreGui")
@@ -48,7 +48,6 @@ local dt_prediction = 0.1
 local ignore_players = {}
 local frame_store = {}
 local directionlines_store = {} -- setmetatable({}, {__mode = "k"}) -- weak keys
-local background_image_id = "rbxassetid://86093393173023"
 local truecolor = Color3.fromRGB(170, 170, 0)
 local falsecolor = Color3.fromRGB(163, 162, 165)
 -----Settings-----
@@ -76,11 +75,12 @@ local function getRoot(character)
 	return root
 end
 
-local function character_available()
+local function character_available(hard_check)
 	local available = false
 	char = plr.Character
 	if not char and not no_char_from_start then return available end
-	if no_char_from_start then available = true return available end
+	if no_char_from_start and hard_check then return available end
+	if no_char_from_start and not hard_check then available = true return available end
 	
 	hrp = getRoot(char)
 	hum = char:FindFirstChildOfClass("Humanoid") :: Humanoid
@@ -129,12 +129,12 @@ local function drawTrajectory(part)
 end
 
 local function finding_(mousePos, children)
-	if not character_available() then return end
+	if not character_available(true) then return end
 	local target_in_sight = {}
 	for i,enemy in pairs(children) do
 		if enemy == char then continue end
 		if enemy:FindFirstChild(targetpart) then
-			local playerPos = if character_available() and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+			local playerPos = if character_available(true) and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
 			local enemyPos = enemy[targetpart].CFrame.Position
 			local distance = (enemyPos - playerPos).Magnitude
 
@@ -158,7 +158,7 @@ local function finding_(mousePos, children)
 
 	local function get_enemy(enemy)
 		local enemyPos = enemy[targetpart].CFrame.Position
-		local playerPos = if character_available() and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+		local playerPos = if character_available(true) and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
 
 		if not DetectThroughWall._value then
 			local ray_param = RaycastParams.new()
@@ -187,7 +187,7 @@ local function finding_(mousePos, children)
 
 		for _,enemy in pairs(target_in_sight) do
 			local enemyPos = enemy[targetpart].CFrame.Position
-			local playerPos = if character_available() and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
+			local playerPos = if character_available(true) and char.PrimaryPart then char.PrimaryPart.CFrame.Position else hrp.CFrame.Position
 			local distance = (enemyPos - playerPos).Magnitude
 
 			if distance < nearestDistance then
@@ -297,10 +297,16 @@ local catagories = {
 	"ESP";
 	"Players List";
 	"NPCs List";
+	"InGameFunction";
 	"Extra";
 	"Settings";
 }
-hub:CreateCatagory(catagories)
+local extra_frames = {
+	"ESPNormalConfigs";
+	"SelectPartConfigs";
+}
+hub:CreateCatagory(catagories, extra_frames)
+hub:SetCatagory(hub._catagories.AimLock._main_f)
 
 do
 	LockNPC = hub._catagories.AimLock:CreateFrame("Lock Npc", "Lock Npc", true):CreateToggle():RegisterSave("lockNPC")
@@ -324,13 +330,15 @@ do
 	LockNearestEnemy = hub._catagories.AimLock:CreateFrame("Lock nearest enemy", "Lock nearest enemy to plr. Aim can change mid lock", true):CreateToggle():RegisterSave("lockNearest")
 
 	SelectPart = hub._catagories.AimLock:CreateFrame("Select Part", "Select Part", "Choose"):CreateButton()
+	SelectPart:OnFunction(function()
+		hub:SetCatagory(hub._catagories.SelectPartConfigs._main_f)
+	end)
 
 	PredictMovement = hub._catagories.AimLock:CreateFrame("Predict Movement", "Predict Movement", false):CreateToggle():RegisterSave("predictMovement")
 
 	DetectThroughWall = hub._catagories.AimLock:CreateFrame("Detect Through Wall", "e", true):CreateToggle()
 
 	ShowViewDirectionLine = hub._catagories.AimLock:CreateFrame("Show the line in Player Head", "can know what player is looking at right now", false):CreateToggle()
-
 
 	-----ESP-----
 
@@ -342,9 +350,54 @@ do
 
 	ShowEspStatsButton = hub._catagories.ESP:CreateFrame("Show Esp stats", nil, false):CreateToggle()
 
+	hub._catagories.ESP:CreateDivider()
+
 	EspNormalTypeButton = hub._catagories.ESP:CreateFrame("Normal Esp", nil, true):CreateToggle()
+
+	-- hub._catagories.ESP:CreateFrame("Configs", nil):CreateButton():OnFunction(function()
+	-- 	hub:SetCatagory(hub._catagories.ESPNormalConfigs._main_f)
+	-- end)
+
+	hub._catagories.ESP:CreateFrame("Configs", nil):CreateButton():OnFunctionChangeCatagory(hub._catagories.ESPNormalConfigs._main_f)
+
+	hub._catagories.ESP:CreateDivider()
 	
 	EspBoxTypeButton = hub._catagories.ESP:CreateFrame("Box Esp", nil, false):CreateToggle()
+
+	-----InGameFunction-----
+	
+	task.spawn(function()
+		if not isfile(`NickHub/InGameFunction/{tostring(game.GameId)}.nh`) then
+			hub._catagories.InGameFunction._button.Visible = false
+			return
+		end
+		local readSuccess, readable_file = nil, nil
+		local a, b = readfile(`NickHub/InGameFunction/{tostring(game.GameId)}.nh`)
+		if type(a) == "string" then
+			readable_file = a
+			readSuccess = true
+		else
+			readable_file = b
+			readSuccess = a
+		end
+
+		if readSuccess then
+			local file = loadfile(`NickHub/InGameFunction/{tostring(game.GameId)}.nh`)()
+			if not table.find(file.PlaceId, game.PlaceId) then return end
+			if file.Init then file.Init(hub) end
+			for i,v in pairs(file.Modules) do
+				local plugin_frame = nil
+				if v.Value == nil then
+					plugin_frame = hub._catagories.InGameFunction:CreateFrame(v.Title, v.Description):CreateButton()
+				elseif type(v.Value) == "boolean" then
+					plugin_frame = hub._catagories.InGameFunction:CreateFrame(v.Title, v.Description, v.Value):CreateToggle()
+				end
+				plugin_frame:OnFunction(v.Function)
+			end
+		else
+			hub._catagories.InGameFunction._button.Visible = false
+		end		
+	end)
 
 	-----Extra-----
 
@@ -380,17 +433,43 @@ do
 
 	SaveSettingsButton = hub._catagories.Settings:CreateFrame("Save Setting", "Save the Setting to file"):CreateButton()
 
+	hub._catagories.Settings:CreateDivider("Danger Zone")
+
+	ResetSettingsButton = hub._catagories.Settings:CreateFrame("Reset Settings", "Reset the settings of the file"):CreateButton()
+
+end
+
+-----Hidden Frames-----
+do
+	-----ESPNormalConfigs-----
+	
+	ESPNormalColor = hub._catagories.ESPNormalConfigs:CreateFrame("Color", nil):CreateTextBox()
+
+	-----SelectPartConfigs-----
+
+	local bodypart = {}
+	if no_char_from_start then
+		bodypart = {"Head", "Torso", "HumanoidRootPart"}
+	else
+		for _,v in pairs(char:GetChildren()) do
+			if not v:IsA("BasePart") or v:IsA("MeshPart") then continue end
+			table.insert(bodypart, v.Name)
+		end
+	end
+	for i,v in pairs(bodypart) do
+		local part_se = nil
+		part_se = hub._catagories.SelectPartConfigs:CreateFrame(v, nil):CreateButton()
+		part_se:OnFunction(function()
+			targetpart = v
+			SelectPart._button1.Text = targetpart
+			hub:SetCatagory(hub._catagories.AimLock._main_f)
+		end)
+	end
+	SelectPart._button1.Text = targetpart
+
 end
 
 hub:LoadSaveFile()
-
-for _,v in hub._folder:GetDescendants() do
-	if v:IsA("TextButton") or v:IsA("TextLabel") or v:IsA("TextBox") then
-		v.Font = Enum.Font.TitilliumWeb
-	end
-end
-
-task.wait()
 
 do
 	selectpartframe = Instance.new("Frame")
@@ -435,19 +514,6 @@ do
 end
 
 -----Startup-----
-local bodypart = {"Head", "Torso", "HumanoidRootPart"}
-for i,v in pairs(bodypart) do
-	local partbutton = Instance.new("TextButton")
-	partbutton.Text = v
-	partbutton.Parent = selectpartframe
-	partbutton.Activated:Connect(function()
-		selectpartframe.Visible = false
-		targetpart = v
-		SelectPart._button1.Text = targetpart
-	end)
-end
-SelectPart._button1.Text = targetpart
-
 local function create_plr_b(p)
 	local partbutton = Instance.new("TextButton")
 	partbutton.Name = p.Name
@@ -493,8 +559,15 @@ players.PlayerRemoving:Connect(function(player)
 end)
 -----Startup-----
 
------Function-----
+for _,v in hub._folder:GetDescendants() do
+	if v:IsA("TextButton") or v:IsA("TextLabel") or v:IsA("TextBox") then
+		v.Font = Enum.Font.TitilliumWeb
+	end
+end
 
+task.wait()
+
+-----Function-----
 radiustext:OnFunction(function(value)
 	if typeof(tonumber(value)) == "number" then
 		radiustext._value = tonumber(value)
@@ -556,12 +629,12 @@ ChangeKeybindButton:OnFunction(function(value)
 end)
 
 ShowViewDirectionLine:OnFunction(function(value)
-	if not cam:FindFirstChild("DirectionLineFolder") then
+	if not hub._folder:FindFirstChild("DirectionLineFolder") then
 		directionline_folder = Instance.new("Folder")
 		directionline_folder.Name = "DirectionLineFolder"
-		directionline_folder.Parent = cam
+		directionline_folder.Parent = hub._folder
 	else
-		directionline_folder = cam:FindFirstChild("DirectionLineFolder")
+		directionline_folder = hub._folder:FindFirstChild("DirectionLineFolder")
 	end
 
 	local function remove_dir_line(adornee)
@@ -594,9 +667,11 @@ ShowViewDirectionLine:OnFunction(function(value)
 			if not directionlines_store[child] then add_dir_line(child) end
 		end)
 	else
-		for _,v in pairs(paths_module.get_child_folder("plr_folder")) do
-			remove_dir_line(v)
+		for _,v in directionlines_store do
+			if not v then continue end
+			v:Destroy()
 		end
+		directionlines_store = {}
 	end
 end)
 
@@ -868,6 +943,10 @@ SaveSettingsButton:OnFunction(function(value)
 	hub:UpdateSettings()
 end)
 
+ResetSettingsButton:OnFunction(function(value)
+	hub:ResetSettings()
+end)
+
 ReloadButton:OnFunction(function(value)
 	make_detect_function()
 end)
@@ -924,12 +1003,15 @@ OldDex:OnFunction(function(value)
 	loadstring(game:HttpGet("https://raw.githubusercontent.com/infyiff/backup/main/dex.lua",true))()
 end)
 
+
+
 child_table.plr_folder.childs = paths_module.get_child_folder("plr_folder")
 child_table.npc_folder.childs = paths_module.get_child_folder("npc_folder")
 
 make_detect_function()
 
 hub._runners.runner_main = rs.RenderStepped:Connect(function()
+	if not character_available(true) then return end
 	if not targetenemy 
 		or not (targetenemy:IsDescendantOf(child_table.plr_folder.path) or targetenemy:IsDescendantOf(child_table.npc_folder.path))
 		or (targetenemy.Humanoid:GetState() == Enum.HumanoidStateType.Dead and not lockafterdeadbutton._value) then
