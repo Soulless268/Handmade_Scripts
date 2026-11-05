@@ -385,13 +385,16 @@ do
 			local file = loadfile(`NickHub/InGameFunction/{tostring(game.GameId)}.nh`)()
 			if not table.find(file.PlaceId, game.PlaceId) then return end
 			if file.Init then file.Init(hub) end
-			for i,v in pairs(file.Modules) do
+			for i,v in file.Modules do
 				local plugin_frame = nil
 				if v.Value == nil then
 					plugin_frame = hub._catagories.InGameFunction:CreateFrame(v.Title, v.Description):CreateButton()
 				elseif type(v.Value) == "boolean" then
 					plugin_frame = hub._catagories.InGameFunction:CreateFrame(v.Title, v.Description, v.Value):CreateToggle()
+				elseif type(v.Value) == "number" then
+					plugin_frame = hub._catagories.InGameFunction:CreateFrame(v.Title, v.Description, v.Value):CreateTextBox()
 				end
+				if not plugin_frame then continue end
 				plugin_frame:OnFunction(v.Function)
 			end
 		else
